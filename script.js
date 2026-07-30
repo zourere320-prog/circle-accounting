@@ -1,6 +1,79 @@
+```javascript
 /* =====================================================
    Circle Accounting
+   Firebase Firestore + LocalStorage
 ===================================================== */
+
+import {
+    initializeApp
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+
+import {
+    getFirestore,
+    doc,
+    setDoc,
+    getDoc
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+
+/* =====================================================
+   Firebase設定
+===================================================== */
+
+const firebaseConfig = {
+
+    apiKey:
+        "AIzaSyAvDWjqiv4G-fMW3_ovTtDLXT-514Q5TX8",
+
+    authDomain:
+        "circle-accounting-b2194.firebaseapp.com",
+
+    projectId:
+        "circle-accounting-b2194",
+
+    storageBucket:
+        "circle-accounting-b2194.firebasestorage.app",
+
+    messagingSenderId:
+        "122808479714",
+
+    appId:
+        "1:122808479714:web:b4f74aa3412064bee653bb"
+
+};
+
+
+const firebaseApp =
+    initializeApp(firebaseConfig);
+
+
+const db =
+    getFirestore(firebaseApp);
+
+
+/*
+    Firestoreに保存する場所
+
+    circleAccounting
+        └── main
+              └── data
+*/
+
+const cloudDataRef =
+    doc(
+        db,
+        "circleAccounting",
+        "main"
+    );
+
+
+/* =====================================================
+   Firebase状態
+===================================================== */
+
+let firebaseReady = true;
+
+let cloudLoading = false;
 
 
 /* =====================================================
@@ -8,28 +81,40 @@
 ===================================================== */
 
 const DEFAULT_GROUPS = [
+
     {
         id: 1,
         name: "未所属",
         color: "#dbeafe"
     }
+
 ];
 
 
 const DEFAULT_DATA = {
 
     events: [
+
         {
             id: 1,
+
             name: "新歓",
+
             fee: 3000,
+
             members: {},
+
             income: [],
+
             expenses: []
+
         }
+
     ],
 
+
     members: [
+
         {
             id: 1,
             name: "田中太郎",
@@ -65,22 +150,25 @@ const DEFAULT_DATA = {
             name: "山田翔",
             groupId: 1
         }
+
     ],
 
-    groups: DEFAULT_GROUPS,
 
-    currentEventId: 1
+    groups:
+        DEFAULT_GROUPS,
+
+
+    currentEventId:
+        1
+
 };
 
 
 /* =====================================================
-   データ読み込み
+   LocalStorage読み込み
 ===================================================== */
 
-let data = loadData();
-
-
-function loadData() {
+function loadLocalData() {
 
     const saved =
         localStorage.getItem(
@@ -103,74 +191,21 @@ function loadData() {
             JSON.parse(saved);
 
 
-        if (!parsed.groups) {
-
-            parsed.groups =
-                structuredClone(
-                    DEFAULT_GROUPS
-                );
-
-        }
-
-
-        if (!parsed.members) {
-
-            parsed.members = [];
-
-        }
-
-
-        if (!parsed.events) {
-
-            parsed.events = [];
-
-        }
-
-
-        parsed.members.forEach(
-            member => {
-
-                if (!member.groupId) {
-
-                    member.groupId = 1;
-
-                }
-
-            }
-        );
-
-
-        parsed.events.forEach(
-            event => {
-
-                if (!event.members) {
-
-                    event.members = {};
-
-                }
-
-                if (!event.income) {
-
-                    event.income = [];
-
-                }
-
-                if (!event.expenses) {
-
-                    event.expenses = [];
-
-                }
-
-            }
-        );
+        normalizeData(parsed);
 
 
         return parsed;
 
 
-    } catch (error) {
+    }
 
-        console.error(error);
+    catch (error) {
+
+        console.error(
+            "LocalStorage読み込みエラー:",
+            error
+        );
+
 
         return structuredClone(
             DEFAULT_DATA
@@ -182,17 +217,380 @@ function loadData() {
 
 
 /* =====================================================
+   データ整形
+===================================================== */
+
+function normalizeData(target) {
+
+    if (!target.groups) {
+
+        target.groups =
+            structuredClone(
+                DEFAULT_GROUPS
+            );
+
+    }
+
+
+    if (!target.members) {
+
+        target.members = [];
+
+    }
+
+
+    if (!target.events) {
+
+        target.events = [];
+
+    }
+
+
+    target.members.forEach(
+
+        member => {
+
+            if (!member.groupId) {
+
+                member.groupId = 1;
+
+            }
+
+        }
+
+    );
+
+
+    target.events.forEach(
+
+        event => {
+
+            if (!event.members) {
+
+                event.members = {};
+
+            }
+
+
+            if (!event.income) {
+
+                event.income = [];
+
+            }
+
+
+            if (!event.expenses) {
+
+                event.expenses = [];
+
+            }
+
+        }
+
+    );
+
+
+    if (
+        target.events.length > 0 &&
+        !target.events.some(
+            event =>
+                event.id ===
+                target.currentEventId
+        )
+    ) {
+
+        target.currentEventId =
+            target.events[0].id;
+
+    }
+
+}
+
+
+/* =====================================================
+   現在のデータ
+===================================================== */
+
+let data =
+    loadLocalData();
+
+
+/* =====================================================
+   クラウド保存
+===================================================== */
+
+async function saveToCloud() {
+
+    try {
+
+        await setDoc(
+
+            cloudDataRef,
+
+            {
+                data: data,
+                updatedAt:
+                    new Date().toISOString()
+            }
+
+        );
+
+
+        console.log(
+            "☁️ Firestore保存成功"
+        );
+
+
+        showCloudStatus(
+            "☁️ クラウド保存済み"
+        );
+
+
+        return true;
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Firestore保存エラー:",
+            error
+        );
+
+
+        firebaseReady = false;
+
+
+        showCloudStatus(
+            "⚠️ クラウド保存失敗"
+        );
+
+
+        return false;
+
+    }
+
+}
+
+
+/* =====================================================
+   クラウド読み込み
+===================================================== */
+
+async function loadFromCloud() {
+
+    cloudLoading = true;
+
+
+    try {
+
+        const snapshot =
+            await getDoc(
+                cloudDataRef
+            );
+
+
+        if (snapshot.exists()) {
+
+            const cloud =
+                snapshot.data();
+
+
+            if (cloud.data) {
+
+                data =
+                    cloud.data;
+
+
+                normalizeData(
+                    data
+                );
+
+
+                localStorage.setItem(
+
+                    "circleAccounting",
+
+                    JSON.stringify(data)
+
+                );
+
+
+                console.log(
+                    "☁️ Firestoreから読み込み成功"
+                );
+
+
+                showCloudStatus(
+                    "☁️ クラウドデータを読み込みました"
+                );
+
+            }
+
+        }
+
+        else {
+
+            /*
+                初回だけ
+                現在のローカルデータを
+                クラウドへ保存
+            */
+
+            await saveToCloud();
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Firestore読み込みエラー:",
+            error
+        );
+
+
+        firebaseReady = false;
+
+
+        showCloudStatus(
+            "📱 オフラインモード"
+        );
+
+    }
+
+
+    cloudLoading = false;
+
+}
+
+
+/* =====================================================
    保存
 ===================================================== */
 
 function saveData() {
 
+    /*
+        まずローカル保存
+    */
+
     localStorage.setItem(
+
         "circleAccounting",
+
         JSON.stringify(data)
+
     );
 
+
+    /*
+        クラウド保存
+    */
+
+    if (
+        firebaseReady &&
+        !cloudLoading
+    ) {
+
+        saveToCloud();
+
+    }
+
+
     updateOverallFinance();
+
+}
+
+
+/* =====================================================
+   クラウド状態表示
+===================================================== */
+
+function showCloudStatus(message) {
+
+    let status =
+        document.getElementById(
+            "cloudStatus"
+        );
+
+
+    if (!status) {
+
+        status =
+            document.createElement(
+                "div"
+            );
+
+
+        status.id =
+            "cloudStatus";
+
+
+        status.style.position =
+            "fixed";
+
+        status.style.right =
+            "15px";
+
+        status.style.bottom =
+            "15px";
+
+        status.style.zIndex =
+            "9999";
+
+        status.style.padding =
+            "9px 13px";
+
+        status.style.borderRadius =
+            "10px";
+
+        status.style.background =
+            "#111827";
+
+        status.style.color =
+            "white";
+
+        status.style.fontSize =
+            "12px";
+
+        status.style.fontWeight =
+            "bold";
+
+        status.style.boxShadow =
+            "0 4px 12px rgba(0,0,0,0.2)";
+
+
+        document.body.appendChild(
+            status
+        );
+
+    }
+
+
+    status.textContent =
+        message;
+
+
+    clearTimeout(
+        status._timer
+    );
+
+
+    status._timer =
+        setTimeout(
+
+            () => {
+
+                status.style.opacity =
+                    "0.75";
+
+            },
+
+            3000
+
+        );
 
 }
 
@@ -219,8 +617,39 @@ function getCurrentEvent() {
 ===================================================== */
 
 document.addEventListener(
+
     "DOMContentLoaded",
-    () => {
+
+    async () => {
+
+        renderEvents();
+
+        renderGroups();
+
+        renderGroupFilter();
+
+        renderMembers();
+
+        renderFinance();
+
+        updateStats();
+
+        updateOverallFinance();
+
+        calculateCustom();
+
+
+        /*
+            Firebaseから最新データを取得
+        */
+
+        await loadFromCloud();
+
+
+        /*
+            クラウド読み込み後に
+            画面を再描画
+        */
 
         renderEvents();
 
@@ -239,6 +668,7 @@ document.addEventListener(
         calculateCustom();
 
     }
+
 );
 
 
@@ -261,6 +691,7 @@ function renderEvents() {
 
 
     data.events.forEach(
+
         event => {
 
             const card =
@@ -279,6 +710,7 @@ function renderEvents() {
                         ? "active"
 
                         : ""
+
                 );
 
 
@@ -289,6 +721,7 @@ function renderEvents() {
 
 
                 saveData();
+
 
                 renderEvents();
 
@@ -327,7 +760,8 @@ function renderEvents() {
 
             fee.textContent =
                 "参加費 ¥" +
-                event.fee
+
+                Number(event.fee)
                     .toLocaleString();
 
 
@@ -369,6 +803,7 @@ function renderEvents() {
             container.appendChild(card);
 
         }
+
     );
 
 
@@ -378,7 +813,7 @@ function renderEvents() {
 
     if (currentEvent) {
 
-        const currentEventName =
+        const eventName =
             document.getElementById(
                 "currentEventName"
             );
@@ -390,9 +825,9 @@ function renderEvents() {
             );
 
 
-        if (currentEventName) {
+        if (eventName) {
 
-            currentEventName.textContent =
+            eventName.textContent =
                 currentEvent.name;
 
         }
@@ -402,8 +837,11 @@ function renderEvents() {
 
             currentFee.textContent =
                 "¥" +
-                currentEvent.fee
-                    .toLocaleString();
+
+                Number(
+                    currentEvent.fee
+                )
+                .toLocaleString();
 
         }
 
@@ -457,12 +895,14 @@ function addEvent() {
 
     const newEvent = {
 
-        id: Date.now(),
+        id:
+            Date.now(),
 
         name:
             name.trim(),
 
-        fee: fee,
+        fee:
+            fee,
 
         members: {},
 
@@ -580,6 +1020,7 @@ function renderGroups() {
 
 
     data.groups.forEach(
+
         group => {
 
             const card =
@@ -694,6 +1135,7 @@ function renderGroups() {
             container.appendChild(card);
 
         }
+
     );
 
 }
@@ -720,12 +1162,19 @@ function addGroup() {
     const colors = [
 
         "#dbeafe",
+
         "#dcfce7",
+
         "#fef3c7",
+
         "#fce7f3",
+
         "#ede9fe",
+
         "#cffafe",
+
         "#ffedd5",
+
         "#e2e8f0"
 
     ];
@@ -738,7 +1187,8 @@ function addGroup() {
 
     const newGroup = {
 
-        id: Date.now(),
+        id:
+            Date.now(),
 
         name:
             name.trim(),
@@ -800,6 +1250,7 @@ function deleteGroup(id) {
 
 
     data.members.forEach(
+
         member => {
 
             if (
@@ -811,24 +1262,17 @@ function deleteGroup(id) {
             }
 
         }
+
     );
 
 
     data.groups =
         data.groups.filter(
+
             group =>
                 group.id !== id
+
         );
-
-
-    if (
-        selectedGroupFilter === id
-    ) {
-
-        selectedGroupFilter =
-            "all";
-
-    }
 
 
     saveData();
@@ -847,7 +1291,8 @@ function deleteGroup(id) {
    グループフィルター
 ===================================================== */
 
-let selectedGroupFilter = "all";
+let selectedGroupFilter =
+    "all";
 
 
 function renderGroupFilter() {
@@ -880,6 +1325,7 @@ function renderGroupFilter() {
                 ? "active"
 
                 : ""
+
         );
 
 
@@ -891,6 +1337,7 @@ function renderGroupFilter() {
 
         selectedGroupFilter =
             "all";
+
 
         renderGroupFilter();
 
@@ -905,6 +1352,7 @@ function renderGroupFilter() {
 
 
     data.groups.forEach(
+
         group => {
 
             const button =
@@ -923,6 +1371,7 @@ function renderGroupFilter() {
                         ? "active"
 
                         : ""
+
                 );
 
 
@@ -934,6 +1383,7 @@ function renderGroupFilter() {
 
                 selectedGroupFilter =
                     group.id;
+
 
                 renderGroupFilter();
 
@@ -947,6 +1397,7 @@ function renderGroupFilter() {
             );
 
         }
+
     );
 
 }
@@ -988,15 +1439,18 @@ function renderMembers() {
 
         members =
             members.filter(
+
                 member =>
                     member.groupId ===
                     selectedGroupFilter
+
             );
 
     }
 
 
     members.forEach(
+
         member => {
 
             const status =
@@ -1007,9 +1461,11 @@ function renderMembers() {
 
             const group =
                 data.groups.find(
+
                     group =>
                         group.id ===
                         member.groupId
+
                 );
 
 
@@ -1060,10 +1516,6 @@ function renderMembers() {
             }
 
 
-            /*
-                名前クリック
-            */
-
             card.onclick =
                 e => {
 
@@ -1079,10 +1531,6 @@ function renderMembers() {
 
                 };
 
-
-            /*
-                グループ
-            */
 
             if (group) {
 
@@ -1113,10 +1561,6 @@ function renderMembers() {
             }
 
 
-            /*
-                名前
-            */
-
             const name =
                 document.createElement(
                     "div"
@@ -1133,10 +1577,6 @@ function renderMembers() {
 
             card.appendChild(name);
 
-
-            /*
-                状態
-            */
 
             const statusText =
                 document.createElement(
@@ -1179,10 +1619,6 @@ function renderMembers() {
             );
 
 
-            /*
-                操作ボタン
-            */
-
             const actions =
                 document.createElement(
                     "div"
@@ -1192,10 +1628,6 @@ function renderMembers() {
             actions.className =
                 "member-actions";
 
-
-            /*
-                名前変更
-            */
 
             const editButton =
                 document.createElement(
@@ -1212,9 +1644,7 @@ function renderMembers() {
 
 
             editButton.onclick =
-                e => {
-
-                    e.stopPropagation();
+                () => {
 
                     renameMember(
                         member.id
@@ -1222,10 +1652,6 @@ function renderMembers() {
 
                 };
 
-
-            /*
-                不参加
-            */
 
             const absentButton =
                 document.createElement(
@@ -1247,9 +1673,7 @@ function renderMembers() {
 
 
             absentButton.onclick =
-                e => {
-
-                    e.stopPropagation();
+                () => {
 
                     toggleAttendance(
                         member.id
@@ -1257,10 +1681,6 @@ function renderMembers() {
 
                 };
 
-
-            /*
-                グループ
-            */
 
             const groupButton =
                 document.createElement(
@@ -1277,9 +1697,7 @@ function renderMembers() {
 
 
             groupButton.onclick =
-                e => {
-
-                    e.stopPropagation();
+                () => {
 
                     changeMemberGroup(
                         member.id
@@ -1287,10 +1705,6 @@ function renderMembers() {
 
                 };
 
-
-            /*
-                上へ
-            */
 
             const upButton =
                 document.createElement(
@@ -1311,9 +1725,7 @@ function renderMembers() {
 
 
             upButton.onclick =
-                e => {
-
-                    e.stopPropagation();
+                () => {
 
                     moveMember(
                         member.id,
@@ -1322,10 +1734,6 @@ function renderMembers() {
 
                 };
 
-
-            /*
-                下へ
-            */
 
             const downButton =
                 document.createElement(
@@ -1346,9 +1754,7 @@ function renderMembers() {
 
 
             downButton.onclick =
-                e => {
-
-                    e.stopPropagation();
+                () => {
 
                     moveMember(
                         member.id,
@@ -1357,10 +1763,6 @@ function renderMembers() {
 
                 };
 
-
-            /*
-                削除
-            */
 
             const deleteButton =
                 document.createElement(
@@ -1377,9 +1779,7 @@ function renderMembers() {
 
 
             deleteButton.onclick =
-                e => {
-
-                    e.stopPropagation();
+                () => {
 
                     deleteMember(
                         member.id
@@ -1419,6 +1819,7 @@ function renderMembers() {
             container.appendChild(card);
 
         }
+
     );
 
 }
@@ -1477,9 +1878,11 @@ function moveMember(
 
     const index =
         data.members.findIndex(
+
             member =>
                 member.id ===
                 memberId
+
         );
 
 
@@ -1522,7 +1925,7 @@ function moveMember(
 
 
 /* =====================================================
-   名前順に並べる
+   名前順
 ===================================================== */
 
 function sortMembersByName() {
@@ -1531,11 +1934,7 @@ function sortMembersByName() {
         !confirm(
             "メンバーを名前順に並べ替えますか？"
         )
-    ) {
-
-        return;
-
-    }
+    ) return;
 
 
     data.members.sort(
@@ -1618,12 +2017,17 @@ function bulkAbsent() {
             ? "全員"
 
             : (
+
                 data.groups.find(
+
                     group =>
                         group.id ===
                         selectedGroupFilter
+
                 )?.name ||
+
                 "選択グループ"
+
             );
 
 
@@ -1631,11 +2035,7 @@ function bulkAbsent() {
         !confirm(
             `${targetName}を一括で不参加にしますか？`
         )
-    ) {
-
-        return;
-
-    }
+    ) return;
 
 
     targetMembers.forEach(
@@ -1662,7 +2062,7 @@ function bulkAbsent() {
 
 
 /* =====================================================
-   全員参加に戻す
+   全員参加
 ===================================================== */
 
 function bulkPresent() {
@@ -1703,22 +2103,14 @@ function bulkPresent() {
 
     if (
         targetMembers.length === 0
-    ) {
-
-        return;
-
-    }
+    ) return;
 
 
     if (
         !confirm(
             "対象メンバーを参加に戻しますか？"
         )
-    ) {
-
-        return;
-
-    }
+    ) return;
 
 
     targetMembers.forEach(
@@ -1748,9 +2140,7 @@ function bulkPresent() {
    グループ変更
 ===================================================== */
 
-function changeMemberGroup(
-    memberId
-) {
+function changeMemberGroup(memberId) {
 
     const member =
         data.members.find(
@@ -1781,12 +2171,14 @@ function changeMemberGroup(
 
 
     data.groups.forEach(
+
         (group, index) => {
 
             message +=
                 `${index + 1}. ${group.name}\n`;
 
         }
+
     );
 
 
@@ -1833,9 +2225,7 @@ function changeMemberGroup(
    支払い
 ===================================================== */
 
-function togglePayment(
-    memberId
-) {
+function togglePayment(memberId) {
 
     const event =
         getCurrentEvent();
@@ -1881,8 +2271,6 @@ function togglePayment(
 
     updateStats();
 
-    renderFinance();
-
 }
 
 
@@ -1890,9 +2278,7 @@ function togglePayment(
    参加 / 不参加
 ===================================================== */
 
-function toggleAttendance(
-    memberId
-) {
+function toggleAttendance(memberId) {
 
     const event =
         getCurrentEvent();
@@ -1925,8 +2311,6 @@ function toggleAttendance(
 
     updateStats();
 
-    renderFinance();
-
 }
 
 
@@ -1950,12 +2334,14 @@ function addMember() {
 
     const newMember = {
 
-        id: Date.now(),
+        id:
+            Date.now(),
 
         name:
             name.trim(),
 
-        groupId: 1
+        groupId:
+            1
 
     };
 
@@ -1966,6 +2352,7 @@ function addMember() {
 
 
     data.events.forEach(
+
         event => {
 
             event.members[
@@ -1973,6 +2360,7 @@ function addMember() {
             ] = "unpaid";
 
         }
+
     );
 
 
@@ -2017,11 +2405,13 @@ function deleteMember(id) {
 
 
     data.events.forEach(
+
         event => {
 
             delete event.members[id];
 
         }
+
     );
 
 
@@ -2033,8 +2423,6 @@ function deleteMember(id) {
     renderMembers();
 
     updateStats();
-
-    renderFinance();
 
 }
 
@@ -2062,6 +2450,7 @@ function updateStats() {
 
 
     data.members.forEach(
+
         member => {
 
             const status =
@@ -2100,17 +2489,18 @@ function updateStats() {
             }
 
         }
+
     );
 
 
     const collected =
         paid *
-        event.fee;
+        Number(event.fee || 0);
 
 
     const remaining =
         unpaid *
-        event.fee;
+        Number(event.fee || 0);
 
 
     const participantElement =
@@ -2149,54 +2539,36 @@ function updateStats() {
         );
 
 
-    if (participantElement) {
-
+    if (participantElement)
         participantElement.textContent =
             participants + "人";
 
-    }
 
-
-    if (paidElement) {
-
+    if (paidElement)
         paidElement.textContent =
             paid + "人";
 
-    }
 
-
-    if (unpaidElement) {
-
+    if (unpaidElement)
         unpaidElement.textContent =
             unpaid + "人";
 
-    }
 
-
-    if (absentElement) {
-
+    if (absentElement)
         absentElement.textContent =
             absent + "人";
 
-    }
 
-
-    if (collectedElement) {
-
+    if (collectedElement)
         collectedElement.textContent =
             "¥" +
             collected.toLocaleString();
 
-    }
 
-
-    if (remainingElement) {
-
+    if (remainingElement)
         remainingElement.textContent =
             "¥" +
             remaining.toLocaleString();
-
-    }
 
 }
 
@@ -2250,7 +2622,8 @@ function addIncome() {
 
     event.income.push({
 
-        id: Date.now(),
+        id:
+            Date.now(),
 
         name:
             name.trim(),
@@ -2324,7 +2697,8 @@ function addExpense() {
 
     event.expenses.push({
 
-        id: Date.now(),
+        id:
+            Date.now(),
 
         name:
             name.trim(),
@@ -2350,7 +2724,7 @@ function addExpense() {
 
 
 /* =====================================================
-   会計帳簿表示
+   会計帳簿
 ===================================================== */
 
 function renderFinance() {
@@ -2362,18 +2736,12 @@ function renderFinance() {
     if (!event) return;
 
 
-    if (!event.income) {
-
+    if (!event.income)
         event.income = [];
 
-    }
 
-
-    if (!event.expenses) {
-
+    if (!event.expenses)
         event.expenses = [];
-
-    }
 
 
     const participationList =
@@ -2394,30 +2762,17 @@ function renderFinance() {
         );
 
 
-    if (participationList) {
-
+    if (participationList)
         participationList.innerHTML = "";
 
-    }
 
-
-    if (incomeList) {
-
+    if (incomeList)
         incomeList.innerHTML = "";
 
-    }
 
-
-    if (expenseList) {
-
+    if (expenseList)
         expenseList.innerHTML = "";
 
-    }
-
-
-    /* =================================================
-       ① 参加費回収
-    ================================================= */
 
     let paidCount = 0;
 
@@ -2425,143 +2780,90 @@ function renderFinance() {
     Object.entries(
         event.members || {}
     ).forEach(
+
         ([memberId, status]) => {
 
             if (
-                status === "paid"
+                status !== "paid"
+            ) return;
+
+
+            paidCount++;
+
+
+            const member =
+                data.members.find(
+
+                    m =>
+                        String(m.id) ===
+                        String(memberId)
+
+                );
+
+
+            if (
+                participationList &&
+                member
             ) {
 
-                paidCount++;
-
-
-                const member =
-                    data.members.find(
-                        m =>
-                            String(m.id) ===
-                            String(memberId)
+                const item =
+                    document.createElement(
+                        "div"
                     );
 
 
-                if (
-                    participationList &&
-                    member
-                ) {
-
-                    const item =
-                        document.createElement(
-                            "div"
-                        );
+                item.className =
+                    "finance-item";
 
 
-                    item.className =
-                        "finance-item";
+                item.innerHTML = `
+
+                    <div class="finance-item-left">
+
+                        <span class="finance-item-name">
+                            ${escapeHTML(member.name)}
+                        </span>
+
+                        <span class="finance-item-date">
+                            参加費
+                        </span>
+
+                    </div>
+
+                    <div class="finance-item-right">
+
+                        <span class="finance-item-amount income-amount">
+                            + ¥${Number(event.fee).toLocaleString()}
+                        </span>
+
+                    </div>
+
+                `;
 
 
-                    const left =
-                        document.createElement(
-                            "div"
-                        );
-
-
-                    left.className =
-                        "finance-item-left";
-
-
-                    const name =
-                        document.createElement(
-                            "span"
-                        );
-
-
-                    name.className =
-                        "finance-item-name";
-
-
-                    name.textContent =
-                        member.name;
-
-
-                    const date =
-                        document.createElement(
-                            "span"
-                        );
-
-
-                    date.className =
-                        "finance-item-date";
-
-
-                    date.textContent =
-                        "参加費";
-
-
-                    left.appendChild(name);
-
-                    left.appendChild(date);
-
-
-                    const right =
-                        document.createElement(
-                            "div"
-                        );
-
-
-                    right.className =
-                        "finance-item-right";
-
-
-                    const amount =
-                        document.createElement(
-                            "span"
-                        );
-
-
-                    amount.className =
-                        "finance-item-amount income-amount";
-
-
-                    amount.textContent =
-                        "+ ¥" +
-                        Number(
-                            event.fee
-                        ).toLocaleString();
-
-
-                    right.appendChild(
-                        amount
-                    );
-
-
-                    item.appendChild(left);
-
-                    item.appendChild(right);
-
-
-                    participationList.appendChild(
-                        item
-                    );
-
-                }
+                participationList.appendChild(
+                    item
+                );
 
             }
 
         }
+
     );
 
 
     const participationIncome =
         paidCount *
-        (Number(event.fee) || 0);
+        (
+            Number(event.fee) || 0
+        );
 
-
-    /* =================================================
-       ② その他収入
-    ================================================= */
 
     let otherIncome = 0;
 
 
     event.income.forEach(
+
         item => {
 
             otherIncome +=
@@ -2571,26 +2873,26 @@ function renderFinance() {
             if (incomeList) {
 
                 incomeList.appendChild(
+
                     createFinanceItem(
                         item,
                         "income"
                     )
+
                 );
 
             }
 
         }
+
     );
 
-
-    /* =================================================
-       ③ 支出
-    ================================================= */
 
     let expenseTotal = 0;
 
 
     event.expenses.forEach(
+
         item => {
 
             expenseTotal +=
@@ -2600,21 +2902,20 @@ function renderFinance() {
             if (expenseList) {
 
                 expenseList.appendChild(
+
                     createFinanceItem(
                         item,
                         "expense"
                     )
+
                 );
 
             }
 
         }
+
     );
 
-
-    /* =================================================
-       ④ 残高
-    ================================================= */
 
     const totalIncome =
         participationIncome +
@@ -2626,10 +2927,6 @@ function renderFinance() {
         expenseTotal;
 
 
-    /* =================================================
-       ⑤ 画面更新
-    ================================================= */
-
     const participationElement =
         document.getElementById(
             "participationIncomeTotal"
@@ -2639,12 +2936,6 @@ function renderFinance() {
     const otherIncomeElement =
         document.getElementById(
             "otherIncomeTotal"
-        );
-
-
-    const incomeElement =
-        document.getElementById(
-            "incomeTotal"
         );
 
 
@@ -2660,54 +2951,28 @@ function renderFinance() {
         );
 
 
-    if (participationElement) {
-
+    if (participationElement)
         participationElement.textContent =
             "¥" +
-            participationIncome
-                .toLocaleString();
-
-    }
+            participationIncome.toLocaleString();
 
 
-    if (otherIncomeElement) {
-
+    if (otherIncomeElement)
         otherIncomeElement.textContent =
             "¥" +
-            otherIncome
-                .toLocaleString();
-
-    }
+            otherIncome.toLocaleString();
 
 
-    if (incomeElement) {
-
-        incomeElement.textContent =
-            "¥" +
-            totalIncome
-                .toLocaleString();
-
-    }
-
-
-    if (expenseElement) {
-
+    if (expenseElement)
         expenseElement.textContent =
             "¥" +
-            expenseTotal
-                .toLocaleString();
-
-    }
+            expenseTotal.toLocaleString();
 
 
-    if (balanceElement) {
-
+    if (balanceElement)
         balanceElement.textContent =
             "¥" +
-            balance
-                .toLocaleString();
-
-    }
+            balance.toLocaleString();
 
 
     updateOverallFinance();
@@ -2823,6 +3088,7 @@ function createFinanceItem(
                 ? "income-amount"
 
                 : "expense-amount"
+
         );
 
 
@@ -2834,6 +3100,7 @@ function createFinanceItem(
                 ? "+ ¥"
 
                 : "- ¥"
+
         ) +
 
         Number(item.amount)
@@ -2855,9 +3122,7 @@ function createFinanceItem(
 
 
     deleteButton.onclick =
-        e => {
-
-            e.stopPropagation();
+        () => {
 
             deleteFinanceItem(
                 type,
@@ -2906,8 +3171,10 @@ function deleteFinanceItem(
 
         event.income =
             event.income.filter(
+
                 item =>
                     item.id !== id
+
             );
 
     }
@@ -2916,8 +3183,10 @@ function deleteFinanceItem(
 
         event.expenses =
             event.expenses.filter(
+
                 item =>
                     item.id !== id
+
             );
 
     }
@@ -3035,7 +3304,7 @@ function resetCurrentEvent() {
    全データ削除
 ===================================================== */
 
-function resetAllData() {
+async function resetAllData() {
 
     if (
         !confirm(
@@ -3047,6 +3316,34 @@ function resetAllData() {
     localStorage.removeItem(
         "circleAccounting"
     );
+
+
+    try {
+
+        await setDoc(
+
+            cloudDataRef,
+
+            {
+                data:
+                    structuredClone(
+                        DEFAULT_DATA
+                    ),
+
+                updatedAt:
+                    new Date().toISOString()
+
+            }
+
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+    }
 
 
     location.reload();
@@ -3070,11 +3367,14 @@ function exportData() {
 
     const blob =
         new Blob(
+
             [json],
+
             {
                 type:
                     "application/json"
             }
+
         );
 
 
@@ -3090,19 +3390,14 @@ function exportData() {
         );
 
 
-    a.href =
-        url;
+    a.href = url;
 
 
     a.download =
         "CircleAccounting_backup.json";
 
 
-    document.body.appendChild(a);
-
     a.click();
-
-    document.body.removeChild(a);
 
 
     URL.revokeObjectURL(
@@ -3130,7 +3425,7 @@ function importData(event) {
 
 
     reader.onload =
-        e => {
+        async e => {
 
             try {
 
@@ -3165,67 +3460,21 @@ function importData(event) {
                     imported;
 
 
-                if (!data.groups) {
-
-                    data.groups =
-                        structuredClone(
-                            DEFAULT_GROUPS
-                        );
-
-                }
-
-
-                data.members.forEach(
-                    member => {
-
-                        if (
-                            !member.groupId
-                        ) {
-
-                            member.groupId =
-                                1;
-
-                        }
-
-                    }
+                normalizeData(
+                    data
                 );
 
 
-                data.events.forEach(
-                    event => {
+                localStorage.setItem(
 
-                        if (
-                            !event.members
-                        ) {
+                    "circleAccounting",
 
-                            event.members =
-                                {};
+                    JSON.stringify(data)
 
-                        }
-
-                        if (
-                            !event.income
-                        ) {
-
-                            event.income =
-                                [];
-
-                        }
-
-                        if (
-                            !event.expenses
-                        ) {
-
-                            event.expenses =
-                                [];
-
-                        }
-
-                    }
                 );
 
 
-                saveData();
+                await saveToCloud();
 
 
                 alert(
@@ -3235,12 +3484,12 @@ function importData(event) {
 
                 location.reload();
 
-
             }
 
             catch(error) {
 
                 console.error(error);
+
 
                 alert(
                     "バックアップファイルを読み込めませんでした。"
@@ -3271,10 +3520,15 @@ function changeFee() {
 
     const newFee =
         Number(
+
             prompt(
+
                 "新しい参加費を入力してください",
+
                 event.fee
+
             )
+
         );
 
 
@@ -3294,7 +3548,9 @@ function changeFee() {
 
     if (
         !confirm(
-            `参加費を ¥${event.fee.toLocaleString()} から ¥${newFee.toLocaleString()} に変更しますか？`
+
+            `参加費を ¥${Number(event.fee).toLocaleString()} から ¥${newFee.toLocaleString()} に変更しますか？`
+
         )
     ) {
 
@@ -3314,9 +3570,9 @@ function changeFee() {
 
     renderMembers();
 
-    updateStats();
-
     renderFinance();
+
+    updateStats();
 
 }
 
@@ -3327,26 +3583,32 @@ function changeFee() {
 
 function updateOverallFinance() {
 
-    let totalParticipationIncome = 0;
+    let totalParticipationIncome =
+        0;
 
-    let totalOtherIncome = 0;
 
-    let totalExpense = 0;
+    let totalOtherIncome =
+        0;
+
+
+    let totalExpense =
+        0;
 
 
     data.events.forEach(
+
         event => {
 
-            /*
-                ① 参加費
-            */
-
-            let paidCount = 0;
+            let paidCount =
+                0;
 
 
             Object.values(
+
                 event.members || {}
+
             ).forEach(
+
                 status => {
 
                     if (
@@ -3358,74 +3620,65 @@ function updateOverallFinance() {
                     }
 
                 }
+
             );
 
 
             totalParticipationIncome +=
+
                 paidCount *
-                (Number(event.fee) || 0);
+                (
+                    Number(event.fee) || 0
+                );
 
-
-            /*
-                ② その他収入
-            */
 
             (
                 event.income || []
             ).forEach(
+
                 item => {
 
                     totalOtherIncome +=
+
                         Number(
                             item.amount
                         ) || 0;
 
                 }
+
             );
 
-
-            /*
-                ③ 支出
-            */
 
             (
                 event.expenses || []
             ).forEach(
+
                 item => {
 
                     totalExpense +=
+
                         Number(
                             item.amount
                         ) || 0;
 
                 }
+
             );
 
         }
+
     );
 
-
-    /*
-        総収入
-    */
 
     const totalIncome =
         totalParticipationIncome +
         totalOtherIncome;
 
 
-    /*
-        現在残高
-    */
-
     const balance =
         totalIncome -
         totalExpense;
 
-
-    /*
-        表示
-    */
 
     const incomeElement =
         document.getElementById(
@@ -3449,8 +3702,7 @@ function updateOverallFinance() {
 
         incomeElement.textContent =
             "¥" +
-            totalIncome
-                .toLocaleString();
+            totalIncome.toLocaleString();
 
     }
 
@@ -3459,8 +3711,7 @@ function updateOverallFinance() {
 
         expenseElement.textContent =
             "¥" +
-            totalExpense
-                .toLocaleString();
+            totalExpense.toLocaleString();
 
     }
 
@@ -3469,9 +3720,88 @@ function updateOverallFinance() {
 
         balanceElement.textContent =
             "¥" +
-            balance
-                .toLocaleString();
+            balance.toLocaleString();
 
     }
 
 }
+
+
+/* =====================================================
+   HTMLのonclickから呼び出せるようにする
+===================================================== */
+
+window.addEvent =
+    addEvent;
+
+window.deleteEvent =
+    deleteEvent;
+
+window.addGroup =
+    addGroup;
+
+window.deleteGroup =
+    deleteGroup;
+
+window.addMember =
+    addMember;
+
+window.deleteMember =
+    deleteMember;
+
+window.renameMember =
+    renameMember;
+
+window.moveMember =
+    moveMember;
+
+window.sortMembersByName =
+    sortMembersByName;
+
+window.bulkAbsent =
+    bulkAbsent;
+
+window.bulkPresent =
+    bulkPresent;
+
+window.changeMemberGroup =
+    changeMemberGroup;
+
+window.togglePayment =
+    togglePayment;
+
+window.toggleAttendance =
+    toggleAttendance;
+
+window.addIncome =
+    addIncome;
+
+window.addExpense =
+    addExpense;
+
+window.deleteFinanceItem =
+    deleteFinanceItem;
+
+window.calculateCustom =
+    calculateCustom;
+
+window.resetCurrentEvent =
+    resetCurrentEvent;
+
+window.resetAllData =
+    resetAllData;
+
+window.exportData =
+    exportData;
+
+window.importData =
+    importData;
+
+window.changeFee =
+    changeFee;
+
+
+console.log(
+    "☁️ Circle Accounting Firebase版 起動"
+);
+```
