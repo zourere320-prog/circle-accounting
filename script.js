@@ -1,7 +1,9 @@
 /* =====================================================
    Circle Accounting
-   Firebase Firestore + LocalStorage
-   Stable Version
+   Firebase Firestore + Firebase Authentication
+   Google Login
+   LocalStorage
+   Mobile / GitHub Pages対応
 ===================================================== */
 
 import {
@@ -14,6 +16,14 @@ import {
     setDoc,
     getDoc
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+import {
+    getAuth,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signOut,
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 
 /* =====================================================
@@ -34,30 +44,27 @@ const firebaseConfig = {
    Firebase初期化
 ===================================================== */
 
+let firebaseApp = null;
 let db = null;
+let auth = null;
+
 let firebaseReady = false;
-let cloudDataRef = null;
+let currentUser = null;
 
 try {
 
-    const firebaseApp =
+    firebaseApp =
         initializeApp(firebaseConfig);
 
     db =
         getFirestore(firebaseApp);
 
-    cloudDataRef =
-        doc(
-            db,
-            "circleAccounting",
-            "main"
-        );
+    auth =
+        getAuth(firebaseApp);
 
     firebaseReady = true;
 
-    console.log(
-        "🔥 Firebase初期化成功"
-    );
+    console.log("🔥 Firebase初期化成功");
 
 }
 catch (error) {
@@ -68,29 +75,24 @@ catch (error) {
     );
 
     firebaseReady = false;
-    db = null;
-    cloudDataRef = null;
 
 }
 
 
 /* =====================================================
-   Firebase状態
+   Google Authentication
 ===================================================== */
 
-let cloudLoading = false;
-let cloudSaving = false;
+const googleProvider =
+    new GoogleAuthProvider();
 
-
-/*
-    Firebase保存が連続して呼ばれた場合に
-    最後の変更を取りこぼさないためのフラグ
-*/
-let cloudSaveQueued = false;
+googleProvider.setCustomParameters({
+    prompt: "select_account"
+});
 
 
 /* =====================================================
-   初期グループ
+   データ
 ===================================================== */
 
 const DEFAULT_GROUPS = [
@@ -103,10 +105,6 @@ const DEFAULT_GROUPS = [
 
 ];
 
-
-/* =====================================================
-   初期データ
-===================================================== */
 
 const DEFAULT_DATA = {
 
@@ -171,8 +169,12 @@ const DEFAULT_DATA = {
 };
 
 
+let data =
+    loadLocalData();
+
+
 /* =====================================================
-   LocalStorage読み込み
+   LocalStorage
 ===================================================== */
 
 function loadLocalData() {
@@ -216,6 +218,28 @@ function loadLocalData() {
 }
 
 
+function saveLocalOnly() {
+
+    try {
+
+        localStorage.setItem(
+            "circleAccounting",
+            JSON.stringify(data)
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            "LocalStorage保存エラー:",
+            error
+        );
+
+    }
+
+}
+
+
 /* =====================================================
    データ整形
 ===================================================== */
@@ -242,26 +266,6 @@ function normalizeData(target) {
     }
 
 
-    /*
-        未所属グループが存在しない場合は追加
-    */
-
-    if (
-        !target.groups.some(
-            group =>
-                Number(group.id) === 1
-        )
-    ) {
-
-        target.groups.unshift(
-            structuredClone(
-                DEFAULT_GROUPS[0]
-            )
-        );
-
-    }
-
-
     if (!Array.isArray(target.members)) {
 
         target.members = [];
@@ -279,14 +283,7 @@ function normalizeData(target) {
     target.members.forEach(
         member => {
 
-            if (
-                !member.groupId ||
-                !target.groups.some(
-                    group =>
-                        Number(group.id) ===
-                        Number(member.groupId)
-                )
-            ) {
+            if (!member.groupId) {
 
                 member.groupId = 1;
 
@@ -299,32 +296,27 @@ function normalizeData(target) {
     target.events.forEach(
         event => {
 
-            if (
-                !event.members ||
-                typeof event.members !== "object"
-            ) {
+            if (!event.members) {
 
                 event.members = {};
 
             }
 
-
-            if (!Array.isArray(event.income)) {
+            if (!event.income) {
 
                 event.income = [];
 
             }
 
-
-            if (!Array.isArray(event.expenses)) {
+            if (!event.expenses) {
 
                 event.expenses = [];
 
             }
 
-
             if (
-                typeof event.fee !== "number"
+                typeof event.fee !==
+                "number"
             ) {
 
                 event.fee =
@@ -337,28 +329,16 @@ function normalizeData(target) {
 
 
     if (
-        target.events.length > 0
+        target.events.length > 0 &&
+        !target.events.some(
+            event =>
+                event.id ===
+                target.currentEventId
+        )
     ) {
 
-        const currentExists =
-            target.events.some(
-                event =>
-                    Number(event.id) ===
-                    Number(target.currentEventId)
-            );
-
-
-        if (!currentExists) {
-
-            target.currentEventId =
-                target.events[0].id;
-
-        }
-
-    }
-    else {
-
-        target.currentEventId = null;
+        target.currentEventId =
+            target.events[0].id;
 
     }
 
@@ -366,41 +346,29 @@ function normalizeData(target) {
 
 
 /* =====================================================
-   現在のデータ
+   Firestore
+   users/{uid}/circleAccounting/main
 ===================================================== */
 
-let data =
-    loadLocalData();
+function getCloudDataRef() {
 
-normalizeData(data);
+    if (
+        !firebaseReady ||
+        !currentUser
+    ) {
 
-
-/* =====================================================
-   LocalStorage保存
-===================================================== */
-
-function saveLocalOnly() {
-
-    try {
-
-        localStorage.setItem(
-            "circleAccounting",
-            JSON.stringify(data)
-        );
-
-        return true;
+        return null;
 
     }
-    catch (error) {
 
-        console.error(
-            "LocalStorage保存エラー:",
-            error
-        );
 
-        return false;
-
-    }
+    return doc(
+        db,
+        "users",
+        currentUser.uid,
+        "circleAccounting",
+        "main"
+    );
 
 }
 
@@ -428,41 +396,25 @@ function showCloudStatus(message) {
             "cloudStatus";
 
 
-        status.style.position =
-            "fixed";
+        Object.assign(
+            status.style,
+            {
+                position: "fixed",
+                right: "15px",
+                bottom: "15px",
+                zIndex: "99999",
+                padding: "9px 13px",
+                borderRadius: "10px",
+                background: "#111827",
+                color: "white",
+                fontSize: "12px",
+                fontWeight: "bold",
+                boxShadow:
+                    "0 4px 12px rgba(0,0,0,0.2)",
+                transition: "opacity .3s"
+            }
+        );
 
-        status.style.right =
-            "15px";
-
-        status.style.bottom =
-            "15px";
-
-        status.style.zIndex =
-            "99999";
-
-        status.style.padding =
-            "9px 13px";
-
-        status.style.borderRadius =
-            "10px";
-
-        status.style.background =
-            "#111827";
-
-        status.style.color =
-            "white";
-
-        status.style.fontSize =
-            "12px";
-
-        status.style.fontWeight =
-            "bold";
-
-        status.style.boxShadow =
-            "0 4px 12px rgba(0,0,0,0.2)";
-
-        status.style.transition =
-            "opacity .3s";
 
         document.body.appendChild(
             status
@@ -498,28 +450,236 @@ function showCloudStatus(message) {
 
 
 /* =====================================================
-   Firebase保存
+   Authentication UI
 ===================================================== */
+
+function renderAuthUI() {
+
+    const loginButton =
+        document.getElementById(
+            "loginButton"
+        );
+
+    const userInfo =
+        document.getElementById(
+            "userInfo"
+        );
+
+    const userName =
+        document.getElementById(
+            "userName"
+        );
+
+
+    if (
+        !loginButton ||
+        !userInfo
+    ) {
+
+        return;
+
+    }
+
+
+    if (currentUser) {
+
+        loginButton.style.display =
+            "none";
+
+        userInfo.style.display =
+            "flex";
+
+
+        if (userName) {
+
+            userName.textContent =
+                currentUser.displayName ||
+                currentUser.email ||
+                "ログイン中";
+
+        }
+
+    }
+    else {
+
+        loginButton.style.display =
+            "inline-flex";
+
+        userInfo.style.display =
+            "none";
+
+    }
+
+}
+
+
+/* =====================================================
+   Googleログイン
+===================================================== */
+
+async function loginWithGoogle() {
+
+    if (!auth) {
+
+        alert(
+            "Firebase Authenticationを利用できません。"
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        showCloudStatus(
+            "🔐 Googleログイン中..."
+        );
+
+
+        const result =
+            await signInWithPopup(
+                auth,
+                googleProvider
+            );
+
+
+        currentUser =
+            result.user;
+
+
+        console.log(
+            "Googleログイン成功:",
+            currentUser.email
+        );
+
+
+        renderAuthUI();
+
+        showCloudStatus(
+            "✅ ログインしました"
+        );
+
+        await loadFromCloud();
+
+        renderAll();
+
+    }
+    catch (error) {
+
+        console.error(
+            "Googleログインエラー:",
+            error
+        );
+
+
+        if (
+            error.code ===
+            "auth/popup-closed-by-user"
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            error.code ===
+            "auth/popup-blocked"
+        ) {
+
+            alert(
+                "ポップアップがブロックされています。ブラウザのポップアップを許可してください。"
+            );
+
+            return;
+
+        }
+
+
+        alert(
+            "Googleログインに失敗しました。\n\n" +
+            error.message
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   ログアウト
+===================================================== */
+
+async function logout() {
+
+    if (!auth) return;
+
+
+    if (
+        !confirm(
+            "ログアウトしますか？"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    try {
+
+        await signOut(auth);
+
+        currentUser = null;
+
+        renderAuthUI();
+
+        showCloudStatus(
+            "👋 ログアウトしました"
+        );
+
+        renderAll();
+
+    }
+    catch (error) {
+
+        console.error(
+            "ログアウトエラー:",
+            error
+        );
+
+        alert(
+            "ログアウトに失敗しました。"
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   Firestore保存
+===================================================== */
+
+let cloudLoading = false;
+let cloudSaving = false;
+
 
 async function saveToCloud() {
 
-    if (
-        !firebaseReady ||
-        !cloudDataRef
-    ) {
+    const ref =
+        getCloudDataRef();
+
+
+    if (!ref) {
 
         return false;
 
     }
 
 
-    /*
-        保存中なら、次の保存を予約
-    */
-
     if (cloudSaving) {
-
-        cloudSaveQueued = true;
 
         return false;
 
@@ -527,32 +687,27 @@ async function saveToCloud() {
 
 
     cloudSaving = true;
-    cloudSaveQueued = false;
 
 
     try {
 
-        /*
-            保存直前のデータをコピー
-        */
-
-        const dataToSave =
-            structuredClone(data);
-
-
         await setDoc(
-
-            cloudDataRef,
-
+            ref,
             {
                 data:
-                    dataToSave,
+                    structuredClone(data),
 
                 updatedAt:
-                    new Date().toISOString()
+                    new Date().toISOString(),
 
+                userEmail:
+                    currentUser?.email ||
+                    "",
+
+                userName:
+                    currentUser?.displayName ||
+                    ""
             }
-
         );
 
 
@@ -589,44 +744,31 @@ async function saveToCloud() {
 
         cloudSaving = false;
 
-
-        /*
-            保存中に別の変更が入った場合、
-            最新状態をもう一度保存
-        */
-
-        if (cloudSaveQueued) {
-
-            cloudSaveQueued = false;
-
-            setTimeout(
-                () => {
-
-                    saveToCloud();
-
-                },
-                0
-            );
-
-        }
-
     }
 
 }
 
 
 /* =====================================================
-   クラウド読み込み
+   Firestore読み込み
 ===================================================== */
 
 async function loadFromCloud() {
 
-    if (
-        !firebaseReady ||
-        !cloudDataRef
-    ) {
+    const ref =
+        getCloudDataRef();
 
-        return false;
+
+    if (!ref) {
+
+        return;
+
+    }
+
+
+    if (cloudLoading) {
+
+        return;
 
     }
 
@@ -637,9 +779,7 @@ async function loadFromCloud() {
     try {
 
         const snapshot =
-            await getDoc(
-                cloudDataRef
-            );
+            await getDoc(ref);
 
 
         if (snapshot.exists()) {
@@ -648,10 +788,7 @@ async function loadFromCloud() {
                 snapshot.data();
 
 
-            if (
-                cloud &&
-                cloud.data
-            ) {
+            if (cloud.data) {
 
                 data =
                     cloud.data;
@@ -674,24 +811,19 @@ async function loadFromCloud() {
                     "☁️ クラウドデータを読み込みました"
                 );
 
-
-                return true;
-
             }
 
         }
         else {
 
             /*
-                Firestoreにデータがない場合のみ
-                現在のローカルデータを初回保存
+                新規ユーザーの場合
+                現在のデータをクラウドへ保存
             */
 
             await saveToCloud();
 
         }
-
-        return false;
 
     }
     catch (error) {
@@ -705,9 +837,6 @@ async function loadFromCloud() {
         showCloudStatus(
             "📱 オフラインモード"
         );
-
-
-        return false;
 
     }
     finally {
@@ -725,18 +854,11 @@ async function loadFromCloud() {
 
 function saveData() {
 
-    /*
-        まず必ずローカル保存
-    */
-
     saveLocalOnly();
 
 
-    /*
-        Firebase保存
-    */
-
     if (
+        currentUser &&
         firebaseReady &&
         !cloudLoading
     ) {
@@ -757,60 +879,13 @@ function saveData() {
 
 function getCurrentEvent() {
 
-    if (
-        !data ||
-        !Array.isArray(data.events)
-    ) {
-
-        return null;
-
-    }
-
-
     return data.events.find(
         event =>
-            Number(event.id) ===
-            Number(data.currentEventId)
-    ) || null;
+            event.id ===
+            data.currentEventId
+    );
 
 }
-
-
-/* =====================================================
-   初期化
-===================================================== */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    async () => {
-
-        /*
-            まずローカルデータで表示
-        */
-
-        renderAll();
-
-
-        /*
-            Firebaseから最新データ取得
-        */
-
-        await loadFromCloud();
-
-
-        /*
-            クラウド取得後に再描画
-        */
-
-        renderAll();
-
-
-        console.log(
-            "☁️ Circle Accounting 起動完了"
-        );
-
-    }
-);
 
 
 /* =====================================================
@@ -868,8 +943,8 @@ function renderEvents() {
             card.className =
                 "event-card " +
                 (
-                    Number(event.id) ===
-                    Number(data.currentEventId)
+                    event.id ===
+                    data.currentEventId
                         ? "active"
                         : ""
                 );
@@ -937,13 +1012,9 @@ function renderEvents() {
                 };
 
 
-            card.appendChild(
-                name
-            );
+            card.appendChild(name);
 
-            card.appendChild(
-                fee
-            );
+            card.appendChild(fee);
 
             card.appendChild(
                 deleteButton
@@ -1024,9 +1095,6 @@ function addEvent() {
         );
 
 
-    if (feeInput === null) return;
-
-
     const fee =
         Number(feeInput);
 
@@ -1103,8 +1171,7 @@ function deleteEvent(id) {
     const event =
         data.events.find(
             e =>
-                Number(e.id) ===
-                Number(id)
+                e.id === id
         );
 
 
@@ -1121,14 +1188,12 @@ function deleteEvent(id) {
     data.events =
         data.events.filter(
             e =>
-                Number(e.id) !==
-                Number(id)
+                e.id !== id
         );
 
 
     if (
-        Number(data.currentEventId) ===
-        Number(id)
+        data.currentEventId === id
     ) {
 
         data.currentEventId =
@@ -1201,8 +1266,8 @@ function renderGroups() {
             const count =
                 data.members.filter(
                     member =>
-                        Number(member.groupId) ===
-                        Number(group.id)
+                        member.groupId ===
+                        group.id
                 ).length;
 
 
@@ -1231,7 +1296,7 @@ function renderGroups() {
 
 
             if (
-                Number(group.id) === 1
+                group.id === 1
             ) {
 
                 deleteButton.style.display =
@@ -1250,13 +1315,9 @@ function renderGroups() {
                 };
 
 
-            card.appendChild(
-                color
-            );
+            card.appendChild(color);
 
-            card.appendChild(
-                name
-            );
+            card.appendChild(name);
 
             card.appendChild(
                 countElement
@@ -1344,9 +1405,7 @@ function addGroup() {
 
 function deleteGroup(id) {
 
-    if (
-        Number(id) === 1
-    ) {
+    if (id === 1) {
 
         alert(
             "未所属グループは削除できません"
@@ -1360,8 +1419,7 @@ function deleteGroup(id) {
     const group =
         data.groups.find(
             g =>
-                Number(g.id) ===
-                Number(id)
+                g.id === id
         );
 
 
@@ -1379,8 +1437,7 @@ function deleteGroup(id) {
         member => {
 
             if (
-                Number(member.groupId) ===
-                Number(id)
+                member.groupId === id
             ) {
 
                 member.groupId = 1;
@@ -1394,21 +1451,8 @@ function deleteGroup(id) {
     data.groups =
         data.groups.filter(
             group =>
-                Number(group.id) !==
-                Number(id)
+                group.id !== id
         );
-
-
-    if (
-        selectedGroupFilter !== "all" &&
-        Number(selectedGroupFilter) ===
-        Number(id)
-    ) {
-
-        selectedGroupFilter =
-            "all";
-
-    }
 
 
     saveData();
@@ -1488,8 +1532,8 @@ function renderGroupFilter() {
             button.className =
                 "filter-btn " +
                 (
-                    Number(selectedGroupFilter) ===
-                    Number(group.id)
+                    selectedGroupFilter ===
+                    group.id
                         ? "active"
                         : ""
                 );
@@ -1557,8 +1601,8 @@ function renderMembers() {
         members =
             members.filter(
                 member =>
-                    Number(member.groupId) ===
-                    Number(selectedGroupFilter)
+                    member.groupId ===
+                    selectedGroupFilter
             );
 
     }
@@ -1576,8 +1620,8 @@ function renderMembers() {
             const group =
                 data.groups.find(
                     group =>
-                        Number(group.id) ===
-                        Number(member.groupId)
+                        group.id ===
+                        member.groupId
                 );
 
 
@@ -1674,9 +1718,7 @@ function renderMembers() {
             name.textContent =
                 member.name;
 
-            card.appendChild(
-                name
-            );
+            card.appendChild(name);
 
 
             const statusText =
@@ -1883,8 +1925,7 @@ function renameMember(memberId) {
     const member =
         data.members.find(
             m =>
-                Number(m.id) ===
-                Number(memberId)
+                m.id === memberId
         );
 
 
@@ -1927,8 +1968,7 @@ function moveMember(
     const index =
         data.members.findIndex(
             member =>
-                Number(member.id) ===
-                Number(memberId)
+                member.id === memberId
         );
 
 
@@ -2010,13 +2050,11 @@ function bulkAbsent() {
 
     const targetMembers =
         selectedGroupFilter === "all"
-
             ? [...data.members]
-
             : data.members.filter(
                 member =>
-                    Number(member.groupId) ===
-                    Number(selectedGroupFilter)
+                    member.groupId ===
+                    selectedGroupFilter
             );
 
 
@@ -2035,14 +2073,12 @@ function bulkAbsent() {
 
     const targetName =
         selectedGroupFilter === "all"
-
             ? "全員"
-
             : (
                 data.groups.find(
                     group =>
-                        Number(group.id) ===
-                        Number(selectedGroupFilter)
+                        group.id ===
+                        selectedGroupFilter
                 )?.name ||
                 "選択グループ"
             );
@@ -2090,13 +2126,11 @@ function bulkPresent() {
 
     const targetMembers =
         selectedGroupFilter === "all"
-
             ? [...data.members]
-
             : data.members.filter(
                 member =>
-                    Number(member.groupId) ===
-                    Number(selectedGroupFilter)
+                    member.groupId ===
+                    selectedGroupFilter
             );
 
 
@@ -2141,8 +2175,7 @@ function changeMemberGroup(memberId) {
     const member =
         data.members.find(
             m =>
-                Number(m.id) ===
-                Number(memberId)
+                m.id === memberId
         );
 
 
@@ -2371,8 +2404,7 @@ function deleteMember(id) {
     const member =
         data.members.find(
             m =>
-                Number(m.id) ===
-                Number(id)
+                m.id === id
         );
 
 
@@ -2389,8 +2421,7 @@ function deleteMember(id) {
     data.members =
         data.members.filter(
             m =>
-                Number(m.id) !==
-                Number(id)
+                m.id !== id
         );
 
 
@@ -2484,30 +2515,25 @@ function updateStats() {
             "participantCount"
         );
 
-
     const paidElement =
         document.getElementById(
             "paidCount"
         );
-
 
     const unpaidElement =
         document.getElementById(
             "unpaidCount"
         );
 
-
     const absentElement =
         document.getElementById(
             "absentCount"
         );
 
-
     const collectedElement =
         document.getElementById(
             "collectedMoney"
         );
-
 
     const remainingElement =
         document.getElementById(
@@ -2574,17 +2600,12 @@ function addIncome() {
     ) return;
 
 
-    const amountInput =
-        prompt(
-            "金額を入力してください"
-        );
-
-
-    if (amountInput === null) return;
-
-
     const amount =
-        Number(amountInput);
+        Number(
+            prompt(
+                "金額を入力してください"
+            )
+        );
 
 
     if (
@@ -2653,17 +2674,12 @@ function addExpense() {
     ) return;
 
 
-    const amountInput =
-        prompt(
-            "金額を入力してください"
-        );
-
-
-    if (amountInput === null) return;
-
-
     const amount =
-        Number(amountInput);
+        Number(
+            prompt(
+                "金額を入力してください"
+            )
+        );
 
 
     if (
@@ -2720,11 +2736,11 @@ function renderFinance() {
     if (!event) return;
 
 
-    if (!Array.isArray(event.income))
+    if (!event.income)
         event.income = [];
 
 
-    if (!Array.isArray(event.expenses))
+    if (!event.expenses)
         event.expenses = [];
 
 
@@ -2733,12 +2749,10 @@ function renderFinance() {
             "participationIncomeList"
         );
 
-
     const incomeList =
         document.getElementById(
             "incomeList"
         );
-
 
     const expenseList =
         document.getElementById(
@@ -2749,10 +2763,8 @@ function renderFinance() {
     if (participationList)
         participationList.innerHTML = "";
 
-
     if (incomeList)
         incomeList.innerHTML = "";
-
 
     if (expenseList)
         expenseList.innerHTML = "";
@@ -2791,7 +2803,6 @@ function renderFinance() {
                         "div"
                     );
 
-
                 item.className =
                     "finance-item";
 
@@ -2800,7 +2811,6 @@ function renderFinance() {
                     document.createElement(
                         "div"
                     );
-
 
                 left.className =
                     "finance-item-left";
@@ -2811,10 +2821,8 @@ function renderFinance() {
                         "span"
                     );
 
-
                 name.className =
                     "finance-item-name";
-
 
                 name.textContent =
                     member.name;
@@ -2825,29 +2833,22 @@ function renderFinance() {
                         "span"
                     );
 
-
                 date.className =
                     "finance-item-date";
-
 
                 date.textContent =
                     "参加費";
 
 
-                left.appendChild(
-                    name
-                );
+                left.appendChild(name);
 
-                left.appendChild(
-                    date
-                );
+                left.appendChild(date);
 
 
                 const right =
                     document.createElement(
                         "div"
                     );
-
 
                 right.className =
                     "finance-item-right";
@@ -2858,10 +2859,8 @@ function renderFinance() {
                         "span"
                     );
 
-
                 amount.className =
                     "finance-item-amount income-amount";
-
 
                 amount.textContent =
                     "+ ¥" +
@@ -2874,13 +2873,9 @@ function renderFinance() {
                 );
 
 
-                item.appendChild(
-                    left
-                );
+                item.appendChild(left);
 
-                item.appendChild(
-                    right
-                );
+                item.appendChild(right);
 
 
                 participationList.appendChild(
@@ -2965,18 +2960,15 @@ function renderFinance() {
             "participationIncomeTotal"
         );
 
-
     const otherIncomeElement =
         document.getElementById(
             "otherIncomeTotal"
         );
 
-
     const expenseElement =
         document.getElementById(
             "expenseTotal"
         );
-
 
     const balanceElement =
         document.getElementById(
@@ -3037,7 +3029,6 @@ function createFinanceItem(
             "div"
         );
 
-
     left.className =
         "finance-item-left";
 
@@ -3047,10 +3038,8 @@ function createFinanceItem(
             "span"
         );
 
-
     name.className =
         "finance-item-name";
-
 
     name.textContent =
         item.name;
@@ -3061,29 +3050,22 @@ function createFinanceItem(
             "span"
         );
 
-
     date.className =
         "finance-item-date";
-
 
     date.textContent =
         item.date;
 
 
-    left.appendChild(
-        name
-    );
+    left.appendChild(name);
 
-    left.appendChild(
-        date
-    );
+    left.appendChild(date);
 
 
     const right =
         document.createElement(
             "div"
         );
-
 
     right.className =
         "finance-item-right";
@@ -3093,7 +3075,6 @@ function createFinanceItem(
         document.createElement(
             "span"
         );
-
 
     amount.className =
         "finance-item-amount " +
@@ -3119,10 +3100,8 @@ function createFinanceItem(
             "button"
         );
 
-
     deleteButton.className =
         "delete-finance";
-
 
     deleteButton.textContent =
         "×";
@@ -3139,22 +3118,16 @@ function createFinanceItem(
         };
 
 
-    right.appendChild(
-        amount
-    );
+    right.appendChild(amount);
 
     right.appendChild(
         deleteButton
     );
 
 
-    element.appendChild(
-        left
-    );
+    element.appendChild(left);
 
-    element.appendChild(
-        right
-    );
+    element.appendChild(right);
 
 
     return element;
@@ -3183,8 +3156,7 @@ function deleteFinanceItem(
         event.income =
             event.income.filter(
                 item =>
-                    Number(item.id) !==
-                    Number(id)
+                    item.id !== id
             );
 
     }
@@ -3193,8 +3165,7 @@ function deleteFinanceItem(
         event.expenses =
             event.expenses.filter(
                 item =>
-                    Number(item.id) !==
-                    Number(id)
+                    item.id !== id
             );
 
     }
@@ -3218,12 +3189,10 @@ function calculateCustom() {
             "calcPeople"
         );
 
-
     const totalElement =
         document.getElementById(
             "calcTotal"
         );
-
 
     const resultElement =
         document.getElementById(
@@ -3253,10 +3222,7 @@ function calculateCustom() {
     let result = 0;
 
 
-    if (
-        people > 0 &&
-        Number.isFinite(total)
-    ) {
+    if (people > 0) {
 
         result =
             Math.ceil(
@@ -3326,23 +3292,19 @@ async function resetAllData() {
         );
 
 
-    normalizeData(data);
-
-
     saveLocalOnly();
 
 
-    if (
-        firebaseReady &&
-        cloudDataRef
-    ) {
+    const ref =
+        getCloudDataRef();
+
+
+    if (ref) {
 
         try {
 
             await setDoc(
-
-                cloudDataRef,
-
+                ref,
                 {
                     data:
                         structuredClone(
@@ -3351,14 +3313,7 @@ async function resetAllData() {
 
                     updatedAt:
                         new Date().toISOString()
-
                 }
-
-            );
-
-
-            console.log(
-                "☁️ Firebaseデータをリセットしました"
             );
 
         }
@@ -3423,13 +3378,9 @@ function exportData() {
         "CircleAccounting_backup.json";
 
 
-    document.body.appendChild(
-        a
-    );
-
+    document.body.appendChild(a);
 
     a.click();
-
 
     a.remove();
 
@@ -3455,7 +3406,7 @@ function exportData() {
 function importData(event) {
 
     const file =
-        event?.target?.files?.[0];
+        event.target.files[0];
 
 
     if (!file) return;
@@ -3477,13 +3428,8 @@ function importData(event) {
 
 
                 if (
-                    !imported ||
-                    !Array.isArray(
-                        imported.events
-                    ) ||
-                    !Array.isArray(
-                        imported.members
-                    )
+                    !imported.events ||
+                    !imported.members
                 ) {
 
                     throw new Error(
@@ -3530,7 +3476,6 @@ function importData(event) {
             catch (error) {
 
                 console.error(
-                    "バックアップ復元エラー:",
                     error
                 );
 
@@ -3540,16 +3485,6 @@ function importData(event) {
                 );
 
             }
-
-        };
-
-
-    reader.onerror =
-        () => {
-
-            alert(
-                "ファイルの読み込みに失敗しました。"
-            );
 
         };
 
@@ -3714,12 +3649,10 @@ function updateOverallFinance() {
             "overallIncome"
         );
 
-
     const expenseElement =
         document.getElementById(
             "overallExpense"
         );
-
 
     const balanceElement =
         document.getElementById(
@@ -3757,16 +3690,111 @@ function updateOverallFinance() {
 
 
 /* =====================================================
-   HTML onclick対応
+   Firebase Authentication監視
 ===================================================== */
 
-/*
-    type="module" の場合、
-    function はグローバルスコープに公開されません。
+function initializeAuthentication() {
 
-    HTML側で onclick="addEvent()" などを使っているため、
-    window に明示的に登録します。
-*/
+    if (!auth) {
+
+        renderAuthUI();
+
+        renderAll();
+
+        return;
+
+    }
+
+
+    onAuthStateChanged(
+        auth,
+        async user => {
+
+            currentUser =
+                user;
+
+
+            renderAuthUI();
+
+
+            if (user) {
+
+                console.log(
+                    "👤 ログイン:",
+                    user.displayName,
+                    user.email
+                );
+
+
+                showCloudStatus(
+                    "☁️ クラウドデータ確認中..."
+                );
+
+
+                await loadFromCloud();
+
+
+                renderAll();
+
+
+            }
+            else {
+
+                console.log(
+                    "👤 未ログイン"
+                );
+
+
+                renderAll();
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   初期化
+===================================================== */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        /*
+            まずローカルデータを表示
+        */
+
+        renderAll();
+
+
+        /*
+            Authentication監視開始
+        */
+
+        initializeAuthentication();
+
+
+        /*
+            ログインUI
+        */
+
+        renderAuthUI();
+
+
+        console.log(
+            "🚀 Circle Accounting 起動完了"
+        );
+
+    }
+);
+
+
+/* =====================================================
+   HTML onclick対応
+===================================================== */
 
 window.addEvent =
     addEvent;
@@ -3838,42 +3866,15 @@ window.changeFee =
     changeFee;
 
 
-/* =====================================================
-   デバッグ用
-===================================================== */
+/* Authentication */
 
-window.circleAccounting =
-    {
+window.loginWithGoogle =
+    loginWithGoogle;
 
-        getData:
-            () =>
-                structuredClone(data),
-
-        save:
-            saveData,
-
-        saveCloud:
-            saveToCloud,
-
-        loadCloud:
-            loadFromCloud,
-
-        render:
-            renderAll
-
-    };
+window.logout =
+    logout;
 
 
 console.log(
-    "🚀 Circle Accounting Firebase版 起動"
-);
-
-console.log(
-    "🔥 Firebase:",
-    firebaseReady
-);
-
-console.log(
-    "📦 LocalStorage:",
-    !!localStorage
+    "🔥 Circle Accounting Firebase Authentication版"
 );

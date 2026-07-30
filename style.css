@@ -1,15 +1,19 @@
+/* =========================================================
+   Circle Accounting
+   Mobile First / Responsive Design
+========================================================= */
+
 * {
     box-sizing: border-box;
-    margin: 0;
-    padding: 0;
 }
 
 html {
-    -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
 }
 
 body {
+    margin: 0;
+    padding: 0;
     font-family:
         -apple-system,
         BlinkMacSystemFont,
@@ -17,65 +21,93 @@ body {
         "Noto Sans JP",
         sans-serif;
 
-    background: #f4f6f8;
-    color: #222;
-    min-height: 100vh;
+    background: #f3f4f6;
+    color: #111827;
 
+    -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
 }
 
+button,
+input {
+    font-family: inherit;
+}
 
-/* ========================================
-   HEADER
-======================================== */
+button {
+    cursor: pointer;
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+
+/* =========================================================
+   Header
+========================================================= */
 
 header {
-    background: #111827;
+    background: linear-gradient(
+        135deg,
+        #111827,
+        #1f2937
+    );
+
     color: white;
-    padding: 22px 20px;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+
+    padding:
+        18px
+        max(16px, calc((100vw - 1200px) / 2));
 }
 
 .header-inner {
-    width: min(1100px, 94%);
-    margin: auto;
+    max-width: 1200px;
+    margin: 0 auto;
 
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
 
     gap: 20px;
 }
 
 header h1 {
-    font-size: 25px;
+    margin: 0;
+
+    font-size: 24px;
+    font-weight: 800;
+
+    letter-spacing: -0.5px;
 }
 
 header p {
-    margin-top: 5px;
-    color: #cbd5e1;
+    margin: 5px 0 0;
+
+    color: #d1d5db;
+
+    font-size: 13px;
 }
 
 .header-actions {
     display: flex;
     gap: 8px;
+    flex-shrink: 0;
 }
 
 .header-btn {
+    border: 1px solid #4b5563;
+
     background: #374151;
     color: white;
 
-    border: none;
-    border-radius: 9px;
+    border-radius: 10px;
 
-    padding: 9px 13px;
+    padding: 10px 14px;
 
-    font-weight: bold;
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 700;
 
-    cursor: pointer;
-
-    min-height: 40px;
+    transition: 0.2s;
 }
 
 .header-btn:hover {
@@ -86,88 +118,93 @@ header p {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+
+    cursor: pointer;
 }
 
 
-/* ========================================
-   MAIN
-======================================== */
+/* =========================================================
+   Main
+========================================================= */
 
 main {
-    width: min(1100px, 94%);
-    margin: 25px auto;
+    width: min(1200px, calc(100% - 32px));
+
+    margin: 24px auto 50px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 20px;
 }
 
 
-/* ========================================
-   PANEL
-======================================== */
+/* =========================================================
+   Panel
+========================================================= */
 
 .panel {
     background: white;
 
     border-radius: 16px;
 
-    padding: 22px;
-
-    margin-bottom: 20px;
+    padding: 24px;
 
     box-shadow:
-        0 3px 15px rgba(0,0,0,0.06);
+        0 2px 8px rgba(0, 0, 0, 0.05);
+
+    border: 1px solid #e5e7eb;
 }
 
 .section-header {
     display: flex;
 
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
 
-    gap: 15px;
+    gap: 16px;
 
-    margin-bottom: 18px;
+    margin-bottom: 20px;
 }
 
-.section-header h2 {
+.section-header h2,
+.panel > h2 {
+    margin: 0;
+
     font-size: 20px;
+    font-weight: 800;
 }
 
 .description {
-    color: #777;
+    margin: 6px 0 0;
+
+    color: #6b7280;
+
     font-size: 13px;
-
-    margin-top: 5px;
+    line-height: 1.6;
 }
 
 
-/* ========================================
-   BUTTON
-======================================== */
-
-button {
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-
-    -webkit-tap-highlight-color: transparent;
-}
-
-button:active {
-    transform: scale(0.97);
-}
+/* =========================================================
+   Buttons
+========================================================= */
 
 .primary-btn {
+    border: none;
+
     background: #2563eb;
     color: white;
 
-    padding: 11px 16px;
-
     border-radius: 10px;
 
-    font-weight: bold;
+    padding: 11px 16px;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    white-space: nowrap;
 
     transition: 0.2s;
-
-    min-height: 42px;
 }
 
 .primary-btn:hover {
@@ -175,53 +212,98 @@ button:active {
 }
 
 .danger-btn {
-    background: #fee2e2;
-    color: #b91c1c;
+    border: 1px solid #fecaca;
 
-    padding: 11px 16px;
+    background: #fef2f2;
+    color: #dc2626;
 
     border-radius: 10px;
 
-    font-weight: bold;
+    padding: 11px 16px;
 
-    min-height: 42px;
+    font-size: 13px;
+    font-weight: 700;
+
+    transition: 0.2s;
+}
+
+.danger-btn:hover {
+    background: #fee2e2;
 }
 
 
-/* ========================================
-   EVENT
-======================================== */
+/* =========================================================
+   Overall Finance
+========================================================= */
+
+.overall-finance {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 14px;
+}
+
+.overall-card {
+    padding: 20px;
+
+    border-radius: 14px;
+
+    background: #f9fafb;
+
+    border: 1px solid #e5e7eb;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+.overall-card span {
+    color: #6b7280;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.overall-card strong {
+    font-size: 25px;
+    font-weight: 800;
+}
+
+
+/* =========================================================
+   Event
+========================================================= */
 
 .event-list {
-    display: flex;
+    display: grid;
 
-    gap: 10px;
+    grid-template-columns:
+        repeat(auto-fill, minmax(220px, 1fr));
 
-    flex-wrap: wrap;
+    gap: 12px;
 }
 
 .event-card {
     position: relative;
 
-    background: #f1f5f9;
-
-    border: 2px solid transparent;
+    padding: 17px;
 
     border-radius: 12px;
 
-    padding: 14px 45px 14px 15px;
+    background: #f9fafb;
 
-    min-width: 180px;
+    border: 2px solid #e5e7eb;
 
     cursor: pointer;
 
     transition: 0.2s;
-
-    user-select: none;
 }
 
 .event-card:hover {
-    transform: translateY(-2px);
+    border-color: #93c5fd;
 }
 
 .event-card.active {
@@ -231,116 +313,109 @@ button:active {
 }
 
 .event-name {
-    font-weight: bold;
+    font-weight: 800;
+
+    font-size: 16px;
+
+    padding-right: 28px;
 }
 
 .event-fee {
-    color: #64748b;
+    margin-top: 7px;
+
+    color: #6b7280;
 
     font-size: 13px;
-
-    margin-top: 4px;
 }
 
 .delete-event {
     position: absolute;
 
-    right: 10px;
-    top: 10px;
-
-    background: transparent;
-
-    color: #94a3b8;
-
-    font-size: 16px;
+    top: 8px;
+    right: 8px;
 
     width: 30px;
     height: 30px;
 
-    border-radius: 6px;
+    border: none;
+
+    background: transparent;
+    color: #9ca3af;
+
+    border-radius: 50%;
+
+    font-size: 20px;
+}
+
+.delete-event:hover {
+    background: #fee2e2;
+    color: #dc2626;
 }
 
 
-/* ========================================
-   SELECTED EVENT
-======================================== */
+/* =========================================================
+   Selected Event
+========================================================= */
 
 .selected-event {
     display: flex;
 
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
 
     gap: 20px;
 
-    background: #f8fafc;
+    padding-bottom: 20px;
 
-    padding: 18px;
-
-    border-radius: 12px;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .small-label {
     display: block;
 
-    color: #64748b;
+    color: #6b7280;
 
     font-size: 12px;
+    font-weight: 700;
 
     margin-bottom: 4px;
 }
 
-#currentEventName {
-    font-size: 22px;
+.selected-event h2 {
+    margin: 0;
+
+    font-size: 24px;
 }
-
-#currentFee {
-    font-size: 25px;
-}
-
-
-/* ========================================
-   FEE
-======================================== */
 
 .fee-control {
     display: flex;
-    flex-direction: column;
 
-    align-items: flex-end;
+    align-items: center;
 
-    gap: 5px;
+    gap: 12px;
+}
 
-    flex-shrink: 0;
+.fee-control strong {
+    font-size: 23px;
 }
 
 .fee-change-btn {
-    border: none;
+    border: 1px solid #d1d5db;
 
-    background: #eef2ff;
-    color: #4338ca;
+    background: white;
 
-    padding: 7px 10px;
+    border-radius: 9px;
 
-    border-radius: 7px;
+    padding: 9px 12px;
 
     font-size: 12px;
-
-    font-weight: bold;
-
-    cursor: pointer;
-
-    min-height: 34px;
-}
-
-.fee-change-btn:hover {
-    opacity: 0.8;
+    font-weight: 700;
 }
 
 
-/* ========================================
-   STATS
-======================================== */
+/* =========================================================
+   Stats
+========================================================= */
 
 .stats {
     display: grid;
@@ -350,77 +425,76 @@ button:active {
 
     gap: 10px;
 
-    margin-top: 15px;
+    margin-top: 18px;
 }
 
 .stat-card {
-    background: #f8fafc;
-
-    border-radius: 12px;
+    min-width: 0;
 
     padding: 15px;
 
-    text-align: center;
+    border-radius: 12px;
 
-    min-width: 0;
+    background: #f9fafb;
+
+    border: 1px solid #e5e7eb;
+
+    text-align: center;
 }
 
 .stat-card span {
     display: block;
 
-    color: #64748b;
+    color: #6b7280;
 
     font-size: 12px;
+    font-weight: 600;
+
+    margin-bottom: 5px;
 }
 
 .stat-card strong {
-    display: block;
-
-    margin-top: 5px;
-
-    font-size: 20px;
-
-    overflow-wrap: anywhere;
+    font-size: 19px;
+    font-weight: 800;
 }
 
-.stat-card.money strong {
-    font-size: 18px;
+.stat-card.money {
+    background: #f0fdf4;
+
+    border-color: #bbf7d0;
 }
 
 
-/* ========================================
-   FINANCE
-======================================== */
+/* =========================================================
+   Finance
+========================================================= */
 
 .finance-buttons {
     display: flex;
+
     gap: 8px;
 }
 
-.income-btn {
-    background: #dcfce7;
-    color: #15803d;
+.income-btn,
+.expense-btn {
+    border: none;
+
+    border-radius: 10px;
 
     padding: 10px 14px;
 
-    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 700;
+}
 
-    font-weight: bold;
-
-    min-height: 40px;
+.income-btn {
+    background: #eff6ff;
+    color: #2563eb;
 }
 
 .expense-btn {
-    background: #fee2e2;
-    color: #b91c1c;
-
-    padding: 10px 14px;
-
-    border-radius: 9px;
-
-    font-weight: bold;
-
-    min-height: 40px;
+    background: #fef2f2;
+    color: #dc2626;
 }
 
 .finance-summary {
@@ -431,72 +505,55 @@ button:active {
 
     gap: 12px;
 
-    margin-bottom: 22px;
+    margin-bottom: 28px;
 }
 
 .finance-card {
-    border-radius: 13px;
-
     padding: 18px;
 
-    text-align: center;
+    border-radius: 12px;
 
-    min-width: 0;
+    border: 1px solid #e5e7eb;
+
+    background: #f9fafb;
 }
 
 .finance-card span {
     display: block;
 
-    font-size: 13px;
+    color: #6b7280;
 
-    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+
+    margin-bottom: 6px;
 }
 
 .finance-card strong {
-    display: block;
-
-    margin-top: 5px;
-
-    font-size: 25px;
-
-    overflow-wrap: anywhere;
+    font-size: 22px;
 }
 
 .income-card {
     background: #f0fdf4;
-}
-
-.income-card strong {
-    color: #16a34a;
+    border-color: #bbf7d0;
 }
 
 .expense-card {
     background: #fef2f2;
-}
-
-.expense-card strong {
-    color: #dc2626;
+    border-color: #fecaca;
 }
 
 .balance-card {
     background: #eff6ff;
+    border-color: #bfdbfe;
 }
 
-.balance-card strong {
-    color: #2563eb;
-}
-
-.finance-columns {
-    display: grid;
-
-    grid-template-columns:
-        1fr 1fr;
-
-    gap: 20px;
+.ledger-section {
+    margin-top: 26px;
 }
 
 .finance-title {
-    margin-bottom: 10px;
+    margin: 0 0 5px;
 
     font-size: 16px;
 }
@@ -506,59 +563,41 @@ button:active {
 }
 
 .expense-title {
-    color: #b91c1c;
+    color: #dc2626;
 }
-
-.ledger-section {
-    margin-top: 20px;
-}
-
-
-/* ========================================
-   FINANCE ITEM
-======================================== */
 
 .finance-item {
     display: flex;
 
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
 
     gap: 12px;
 
-    background: #f8fafc;
+    padding: 13px 0;
 
-    border-radius: 10px;
-
-    padding: 12px;
-
-    margin-bottom: 7px;
-
-    min-width: 0;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 .finance-item-left {
-    display: flex;
+    min-width: 0;
 
+    display: flex;
     flex-direction: column;
 
     gap: 3px;
-
-    min-width: 0;
 }
 
 .finance-item-name {
-    font-weight: bold;
+    font-weight: 700;
 
-    font-size: 14px;
-
-    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .finance-item-date {
-    font-size: 11px;
+    color: #9ca3af;
 
-    color: #94a3b8;
+    font-size: 11px;
 }
 
 .finance-item-right {
@@ -566,13 +605,13 @@ button:active {
 
     align-items: center;
 
-    gap: 8px;
+    gap: 10px;
 
     flex-shrink: 0;
 }
 
 .finance-item-amount {
-    font-weight: bold;
+    font-weight: 800;
 
     white-space: nowrap;
 }
@@ -586,27 +625,29 @@ button:active {
 }
 
 .delete-finance {
-    background: #e5e7eb;
+    border: none;
 
+    background: #f3f4f6;
     color: #6b7280;
 
     width: 30px;
     height: 30px;
 
-    border-radius: 6px;
+    border-radius: 7px;
 
-    flex-shrink: 0;
+    font-size: 17px;
 }
 
 
-/* ========================================
-   GROUP
-======================================== */
+/* =========================================================
+   Groups
+========================================================= */
 
 .group-list {
-    display: flex;
+    display: grid;
 
-    flex-wrap: wrap;
+    grid-template-columns:
+        repeat(auto-fill, minmax(200px, 1fr));
 
     gap: 10px;
 }
@@ -616,20 +657,20 @@ button:active {
 
     align-items: center;
 
-    gap: 8px;
+    gap: 10px;
 
-    padding: 10px 13px;
-
-    border-radius: 10px;
+    padding: 12px 14px;
 
     border: 1px solid #e5e7eb;
 
-    background: #f8fafc;
+    border-radius: 10px;
+
+    background: #fafafa;
 }
 
 .group-color {
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
 
     border-radius: 50%;
 
@@ -637,262 +678,9 @@ button:active {
 }
 
 .group-name {
-    font-weight: bold;
+    flex: 1;
 
-    font-size: 13px;
-}
-
-.group-count {
-    color: #64748b;
-
-    font-size: 11px;
-}
-
-.group-delete {
-    margin-left: 5px;
-
-    background: #fee2e2;
-
-    color: #b91c1c;
-
-    width: 28px;
-    height: 28px;
-
-    border-radius: 5px;
-}
-
-
-/* ========================================
-   GROUP FILTER
-======================================== */
-
-.group-filter {
-    display: flex;
-
-    gap: 8px;
-
-    flex-wrap: wrap;
-
-    margin-bottom: 15px;
-}
-
-.filter-btn {
-    background: #f1f5f9;
-
-    color: #475569;
-
-    padding: 8px 12px;
-
-    border-radius: 8px;
-
-    font-size: 12px;
-
-    min-height: 36px;
-}
-
-.filter-btn.active {
-    background: #2563eb;
-
-    color: white;
-}
-
-
-/* ========================================
-   LEGEND
-======================================== */
-
-.legend {
-    display: flex;
-
-    gap: 18px;
-
-    margin-bottom: 15px;
-
-    color: #555;
-
-    font-size: 13px;
-
-    flex-wrap: wrap;
-}
-
-.dot {
-    display: inline-block;
-
-    width: 10px;
-    height: 10px;
-
-    border-radius: 50%;
-
-    margin-right: 5px;
-}
-
-.dot.unpaid {
-    background: #f59e0b;
-}
-
-.dot.paid {
-    background: #22c55e;
-}
-
-.dot.absent {
-    background: #cbd5e1;
-}
-
-
-/* ========================================
-   BULK ACTIONS
-======================================== */
-
-.bulk-actions {
-    display: flex;
-
-    flex-wrap: wrap;
-
-    gap: 8px;
-
-    margin-bottom: 15px;
-}
-
-.bulk-btn {
-    padding: 9px 13px;
-
-    border-radius: 9px;
-
-    font-weight: bold;
-
-    font-size: 12px;
-
-    min-height: 38px;
-}
-
-.absent-bulk {
-    background: #fee2e2;
-    color: #b91c1c;
-}
-
-.present-bulk {
-    background: #dcfce7;
-    color: #15803d;
-}
-
-.sort-bulk {
-    background: #e0e7ff;
-    color: #4338ca;
-}
-
-.sort-btn {
-    background: #f1f5f9;
-    color: #475569;
-
-    width: 30px;
-    height: 30px;
-
-    border-radius: 6px;
-
-    font-weight: bold;
-}
-
-
-/* ========================================
-   MEMBER
-======================================== */
-
-.member-grid {
-    display: grid;
-
-    grid-template-columns:
-        repeat(4, 1fr);
-
-    gap: 12px;
-}
-
-.member-card {
-    position: relative;
-
-    background: #fff7ed;
-
-    border: 2px solid #fed7aa;
-
-    border-radius: 13px;
-
-    padding: 18px 10px;
-
-    text-align: center;
-
-    cursor: pointer;
-
-    transition: 0.2s;
-
-    user-select: none;
-
-    overflow: hidden;
-
-    min-width: 0;
-}
-
-.member-card:hover {
-    transform: translateY(-2px);
-}
-
-.member-card:active {
-    transform: scale(0.97);
-}
-
-
-/* グループカラー */
-
-.member-card.group-colored {
-    border-color: var(--group-color);
-
-    background:
-        color-mix(
-            in srgb,
-            var(--group-color) 10%,
-            white
-        );
-}
-
-
-/* 支払い済み */
-
-.member-card.paid {
-    border-color: #86efac;
-
-    background: #f0fdf4;
-}
-
-
-/* 不参加 */
-
-.member-card.absent {
-    background: #e5e7eb;
-
-    border-color: #d1d5db;
-
-    color: #9ca3af;
-
-    opacity: 0.65;
-}
-
-
-/* グループ名 */
-
-.member-group {
-    display: inline-block;
-
-    margin-bottom: 5px;
-
-    padding: 3px 7px;
-
-    border-radius: 5px;
-
-    font-size: 10px;
-
-    background: var(--group-color);
-
-    color: #374151;
-
-    max-width: 100%;
+    font-weight: 700;
 
     overflow: hidden;
 
@@ -901,24 +689,259 @@ button:active {
     white-space: nowrap;
 }
 
+.group-count {
+    color: #6b7280;
+
+    font-size: 12px;
+}
+
+.group-delete {
+    border: none;
+
+    background: transparent;
+
+    color: #9ca3af;
+
+    font-size: 18px;
+
+    width: 30px;
+    height: 30px;
+
+    border-radius: 7px;
+}
+
+.group-delete:hover {
+    color: #dc2626;
+    background: #fee2e2;
+}
+
+
+/* =========================================================
+   Bulk Actions
+========================================================= */
+
+.bulk-actions {
+    display: flex;
+
+    gap: 8px;
+
+    flex-wrap: wrap;
+
+    margin-bottom: 14px;
+}
+
+.bulk-btn {
+    border: 1px solid #d1d5db;
+
+    background: white;
+
+    color: #374151;
+
+    border-radius: 9px;
+
+    padding: 9px 13px;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.absent-bulk {
+    color: #dc2626;
+}
+
+.present-bulk {
+    color: #16a34a;
+}
+
+.sort-bulk {
+    color: #2563eb;
+}
+
+
+/* =========================================================
+   Legend
+========================================================= */
+
+.legend {
+    display: flex;
+
+    gap: 16px;
+
+    flex-wrap: wrap;
+
+    margin-bottom: 14px;
+
+    color: #6b7280;
+
+    font-size: 12px;
+}
+
+.legend span {
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+}
+
+.dot {
+    width: 9px;
+    height: 9px;
+
+    border-radius: 50%;
+
+    display: inline-block;
+}
+
+.dot.unpaid {
+    background: #fbbf24;
+}
+
+.dot.paid {
+    background: #22c55e;
+}
+
+.dot.absent {
+    background: #9ca3af;
+}
+
+
+/* =========================================================
+   Group Filter
+========================================================= */
+
+.group-filter {
+    display: flex;
+
+    gap: 7px;
+
+    overflow-x: auto;
+
+    padding-bottom: 6px;
+
+    margin-bottom: 15px;
+
+    scrollbar-width: thin;
+}
+
+.filter-btn {
+    border: 1px solid #d1d5db;
+
+    background: white;
+
+    color: #4b5563;
+
+    border-radius: 999px;
+
+    padding: 8px 14px;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    flex-shrink: 0;
+}
+
+.filter-btn.active {
+    background: #111827;
+    color: white;
+
+    border-color: #111827;
+}
+
+
+/* =========================================================
+   Members
+========================================================= */
+
+.member-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 10px;
+}
+
+.member-card {
+    position: relative;
+
+    padding: 16px;
+
+    border-radius: 12px;
+
+    border: 2px solid #fbbf24;
+
+    background: #fffbeb;
+
+    transition: 0.2s;
+
+    cursor: pointer;
+
+    overflow: hidden;
+}
+
+.member-card.paid {
+    background: #f0fdf4;
+
+    border-color: #22c55e;
+}
+
+.member-card.absent {
+    background: #f3f4f6;
+
+    border-color: #9ca3af;
+
+    opacity: 0.8;
+}
+
+.member-card.group-colored {
+    border-left-width: 7px;
+
+    border-left-color:
+        var(--group-color);
+}
+
+.member-group {
+    display: inline-block;
+
+    margin-bottom: 6px;
+
+    padding: 3px 7px;
+
+    border-radius: 5px;
+
+    background:
+        var(--group-color);
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    color: #374151;
+}
+
 .member-name {
-    font-weight: bold;
+    font-size: 17px;
 
-    font-size: 16px;
+    font-weight: 800;
 
-    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .member-status {
-    margin-top: 7px;
+    margin-top: 5px;
 
     font-size: 12px;
+
+    color: #6b7280;
 }
 
 .member-card.paid .member-status {
     color: #16a34a;
 
-    font-weight: bold;
+    font-weight: 700;
 }
 
 .member-card.absent .member-status {
@@ -928,177 +951,143 @@ button:active {
 .member-actions {
     display: flex;
 
-    justify-content: center;
-
-    align-items: center;
-
     gap: 5px;
 
-    margin-top: 10px;
-
     flex-wrap: wrap;
+
+    margin-top: 13px;
 }
 
 .member-actions button {
-    padding: 6px 8px;
+    border: 1px solid #d1d5db;
+
+    background: white;
+
+    color: #374151;
 
     border-radius: 7px;
 
+    min-height: 32px;
+
+    padding: 5px 8px;
+
     font-size: 11px;
 
-    min-height: 30px;
+    font-weight: 700;
 }
 
-.absent-btn {
-    background: #e2e8f0;
+.member-actions .delete-member {
+    color: #dc2626;
 
-    color: #475569;
+    border-color: #fecaca;
+
+    background: #fff5f5;
 }
 
-.group-btn {
-    background: #e0e7ff;
-
-    color: #4338ca;
+.member-actions .absent-btn {
+    color: #b45309;
 }
 
-.delete-member {
-    background: #fee2e2;
+.member-actions .sort-btn {
+    width: 32px;
 
-    color: #b91c1c;
+    padding: 0;
 }
 
 
-/* ========================================
-   CALCULATOR
-======================================== */
+/* =========================================================
+   Calculator
+========================================================= */
 
 .calculator {
     display: grid;
 
     grid-template-columns:
-        1fr 1fr 1fr;
+        1fr 1fr 1.3fr;
 
-    gap: 15px;
+    gap: 14px;
 
     align-items: end;
 }
 
+.input-group {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+}
+
 .input-group label {
-    display: block;
+    font-size: 12px;
 
-    font-size: 13px;
+    font-weight: 700;
 
-    margin-bottom: 6px;
-
-    color: #64748b;
+    color: #4b5563;
 }
 
 .input-group input {
     width: 100%;
 
-    padding: 13px;
-
-    border: 1px solid #cbd5e1;
+    border: 1px solid #d1d5db;
 
     border-radius: 9px;
 
+    padding: 12px;
+
     font-size: 16px;
 
-    min-height: 46px;
+    outline: none;
 
-    appearance: none;
+    background: white;
 }
 
 .input-group input:focus {
-    outline: none;
-
     border-color: #2563eb;
 
     box-shadow:
-        0 0 0 3px rgba(37,99,235,0.12);
+        0 0 0 3px
+        rgba(37, 99, 235, 0.1);
 }
 
 .calc-result {
-    background: #eff6ff;
-
-    border-radius: 10px;
-
-    padding: 13px;
-
-    text-align: center;
-}
-
-.calc-result span {
-    display: block;
-
-    font-size: 12px;
-
-    color: #64748b;
-}
-
-.calc-result strong {
-    display: block;
-
-    margin-top: 3px;
-
-    font-size: 22px;
-
-    color: #2563eb;
-}
-
-
-/* ========================================
-   OVERALL FINANCE
-======================================== */
-
-.overall-finance {
-    display: grid;
-
-    grid-template-columns:
-        repeat(3, 1fr);
-
-    gap: 15px;
-}
-
-.overall-card {
-    padding: 22px;
-
-    border-radius: 14px;
-
-    background: #f8fafc;
-
-    border: 1px solid #e2e8f0;
+    min-height: 48px;
 
     display: flex;
 
-    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
 
-    gap: 8px;
+    gap: 12px;
 
-    min-width: 0;
+    padding: 10px 15px;
+
+    border-radius: 10px;
+
+    background: #eff6ff;
+
+    border: 1px solid #bfdbfe;
 }
 
-.overall-card span {
-    font-size: 13px;
+.calc-result span {
+    color: #6b7280;
 
-    color: #64748b;
+    font-size: 12px;
 }
 
-.overall-card strong {
-    font-size: 26px;
+.calc-result strong {
+    color: #2563eb;
 
-    font-weight: 800;
-
-    overflow-wrap: anywhere;
+    font-size: 22px;
 }
 
 
-/* ========================================
-   SETTINGS
-======================================== */
+/* =========================================================
+   Settings
+========================================================= */
 
-.settings-panel h2 {
-    margin-bottom: 8px;
+.settings-panel {
+    margin-bottom: 0;
 }
 
 .settings-buttons {
@@ -1108,45 +1097,40 @@ button:active {
 
     flex-wrap: wrap;
 
-    margin-top: 15px;
+    margin-top: 18px;
 }
 
 
-/* ========================================
-   FOOTER
-======================================== */
+/* =========================================================
+   Footer
+========================================================= */
 
 footer {
     text-align: center;
 
-    color: #64748b;
+    padding: 25px 16px 40px;
 
-    padding: 30px 10px;
+    color: #9ca3af;
 
-    font-size: 13px;
+    font-size: 12px;
 }
 
-footer span {
-    display: block;
+footer p {
+    margin: 0 0 4px;
 
-    margin-top: 5px;
+    font-weight: 800;
 
-    font-size: 11px;
+    color: #6b7280;
 }
 
 
-/* ========================================
-   TABLET
-======================================== */
+/* =========================================================
+   Tablet
+========================================================= */
 
 @media (max-width: 900px) {
 
     .stats {
-        grid-template-columns:
-            repeat(3, 1fr);
-    }
-
-    .member-grid {
         grid-template-columns:
             repeat(3, 1fr);
     }
@@ -1156,43 +1140,37 @@ footer span {
             repeat(2, 1fr);
     }
 
+    .overall-finance {
+        grid-template-columns:
+            repeat(3, 1fr);
+    }
+
 }
 
 
-/* ========================================
-   MOBILE
-======================================== */
+/* =========================================================
+   Smartphone
+========================================================= */
 
-@media (max-width: 700px) {
+@media (max-width: 640px) {
 
-    main {
-        width: 94%;
-
-        margin-top: 16px;
-        margin-bottom: 16px;
-    }
-
-    .panel {
-        padding: 16px;
-
-        border-radius: 13px;
-
-        margin-bottom: 14px;
+    body {
+        background: #f3f4f6;
     }
 
 
-    /* HEADER */
+    /* Header */
 
     header {
-        padding: 17px 15px;
+        padding:
+            15px
+            14px;
     }
 
     .header-inner {
-        width: 100%;
+        align-items: flex-start;
 
         flex-direction: column;
-
-        align-items: stretch;
 
         gap: 13px;
     }
@@ -1212,13 +1190,32 @@ footer span {
     .header-btn {
         flex: 1;
 
-        text-align: center;
-
         min-height: 42px;
+
+        font-size: 12px;
     }
 
 
-    /* SECTION */
+    /* Main */
+
+    main {
+        width: calc(100% - 20px);
+
+        margin:
+            10px auto
+            30px;
+
+        gap: 12px;
+    }
+
+
+    /* Panel */
+
+    .panel {
+        padding: 17px 14px;
+
+        border-radius: 14px;
+    }
 
     .section-header {
         align-items: flex-start;
@@ -1226,10 +1223,17 @@ footer span {
         flex-direction: column;
 
         gap: 12px;
+
+        margin-bottom: 15px;
     }
 
-    .section-header h2 {
+    .section-header h2,
+    .panel > h2 {
         font-size: 18px;
+    }
+
+    .description {
+        font-size: 12px;
     }
 
     .section-header .primary-btn {
@@ -1237,56 +1241,85 @@ footer span {
     }
 
 
-    /* EVENT */
+    /* Overall */
+
+    .overall-finance {
+        grid-template-columns: 1fr;
+
+        gap: 8px;
+    }
+
+    .overall-card {
+        padding: 15px;
+
+        flex-direction: row;
+
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .overall-card strong {
+        font-size: 21px;
+    }
+
+
+    /* Events */
 
     .event-list {
-        display: grid;
-
-        grid-template-columns:
-            repeat(2, 1fr);
+        grid-template-columns: 1fr;
     }
 
     .event-card {
-        min-width: 0;
+        min-height: 72px;
 
-        width: 100%;
+        display: flex;
+
+        flex-direction: column;
+
+        justify-content: center;
     }
 
 
-    /* SELECTED EVENT */
+    /* Selected Event */
 
     .selected-event {
-        align-items: stretch;
+        align-items: flex-start;
 
         flex-direction: column;
 
         gap: 15px;
     }
 
+    .selected-event h2 {
+        font-size: 21px;
+    }
+
     .fee-control {
-        align-items: flex-start;
+        width: 100%;
+
+        flex-wrap: wrap;
+    }
+
+    .fee-control strong {
+        font-size: 21px;
     }
 
     .fee-change-btn {
-        width: 100%;
-    }
+        margin-left: auto;
 
-    #currentEventName {
-        font-size: 19px;
-    }
-
-    #currentFee {
-        font-size: 22px;
+        min-height: 40px;
     }
 
 
-    /* STATS */
+    /* Stats */
 
     .stats {
         grid-template-columns:
             repeat(2, 1fr);
 
         gap: 8px;
+
+        margin-top: 14px;
     }
 
     .stat-card {
@@ -1294,27 +1327,21 @@ footer span {
     }
 
     .stat-card strong {
-        font-size: 18px;
-    }
-
-    .stat-card.money strong {
-        font-size: 16px;
+        font-size: 17px;
     }
 
 
-    /* FINANCE */
+    /* Finance */
 
     .finance-buttons {
         width: 100%;
-
-        flex-direction: column;
     }
 
     .income-btn,
     .expense-btn {
-        width: 100%;
+        flex: 1;
 
-        min-height: 42px;
+        min-height: 43px;
     }
 
     .finance-summary {
@@ -1322,345 +1349,224 @@ footer span {
             repeat(2, 1fr);
 
         gap: 8px;
+
+        margin-bottom: 20px;
     }
 
     .finance-card {
-        padding: 14px 8px;
+        padding: 14px 12px;
     }
 
     .finance-card strong {
-        font-size: 20px;
+        font-size: 19px;
     }
-
-    .finance-columns {
-        grid-template-columns:
-            1fr;
-    }
-
-
-    /* OVERALL */
-
-    .overall-finance {
-        grid-template-columns:
-            1fr;
-    }
-
-    .overall-card {
-        padding: 17px;
-    }
-
-    .overall-card strong {
-        font-size: 23px;
-    }
-
-
-    /* GROUP */
-
-    .group-list {
-        gap: 7px;
-    }
-
-    .group-card {
-        padding: 9px 10px;
-    }
-
-
-    /* BULK */
-
-    .bulk-actions {
-        display: grid;
-
-        grid-template-columns:
-            1fr 1fr;
-
-        gap: 7px;
-    }
-
-    .bulk-btn {
-        width: 100%;
-    }
-
-    .sort-bulk {
-        grid-column:
-            1 / -1;
-    }
-
-
-    /* MEMBER */
-
-    .member-grid {
-        grid-template-columns:
-            repeat(2, 1fr);
-
-        gap: 8px;
-    }
-
-    .member-card {
-        padding: 14px 7px;
-
-        border-radius: 11px;
-    }
-
-    .member-name {
-        font-size: 14px;
-    }
-
-    .member-status {
-        font-size: 11px;
-    }
-
-    .member-actions {
-        gap: 4px;
-    }
-
-    .member-actions button {
-        padding: 6px 7px;
-
-        font-size: 10px;
-
-        min-height: 30px;
-    }
-
-
-    /* LEGEND */
-
-    .legend {
-        gap: 9px;
-
-        font-size: 11px;
-    }
-
-
-    /* CALCULATOR */
-
-    .calculator {
-        grid-template-columns:
-            1fr;
-
-        gap: 10px;
-    }
-
-    .calc-result {
-        padding: 16px;
-    }
-
-
-    /* SETTINGS */
-
-    .settings-buttons {
-        display: grid;
-
-        grid-template-columns:
-            1fr;
-    }
-
-    .danger-btn {
-        width: 100%;
-    }
-
-
-    /* FINANCE ITEM */
 
     .finance-item {
-        padding: 11px 9px;
-    }
-
-    .finance-item-name {
-        font-size: 13px;
+        padding: 12px 0;
     }
 
     .finance-item-amount {
         font-size: 13px;
     }
 
-}
 
+    /* Groups */
 
-/* ========================================
-   SMALL MOBILE
-======================================== */
-
-@media (max-width: 500px) {
-
-    main {
-        width: 96%;
+    .group-list {
+        grid-template-columns: 1fr;
     }
 
-    .panel {
-        padding: 14px;
+    .group-card {
+        min-height: 48px;
     }
 
-    header h1 {
-        font-size: 20px;
-    }
 
-    .event-list {
-        grid-template-columns:
-            1fr;
-    }
+    /* Bulk */
 
-    .stats {
-        grid-template-columns:
-            repeat(2, 1fr);
-    }
+    .bulk-actions {
+        display: grid;
 
-    .stat-card {
-        min-height: 78px;
-
-        display: flex;
-
-        flex-direction: column;
-
-        justify-content: center;
-    }
-
-    .finance-summary {
         grid-template-columns:
             1fr 1fr;
     }
 
-    .finance-card {
-        min-height: 85px;
-
-        display: flex;
-
-        flex-direction: column;
-
-        justify-content: center;
+    .bulk-btn {
+        min-height: 42px;
     }
 
-    .finance-card strong {
-        font-size: 18px;
+    .sort-bulk {
+        grid-column: 1 / -1;
     }
+
+
+    /* Group Filter */
+
+    .group-filter {
+        margin-left: -2px;
+        margin-right: -2px;
+
+        padding-left: 2px;
+        padding-right: 2px;
+    }
+
+    .filter-btn {
+        min-height: 40px;
+
+        padding:
+            8px 15px;
+    }
+
+
+    /* Members */
 
     .member-grid {
-        grid-template-columns:
-            repeat(2, 1fr);
+        grid-template-columns: 1fr;
 
-        gap: 7px;
+        gap: 9px;
     }
 
     .member-card {
-        padding: 13px 5px;
-    }
-
-    .member-actions button {
-        padding: 5px 6px;
-
-        font-size: 9px;
-    }
-
-    .legend {
-        gap: 7px;
-
-        font-size: 10px;
-    }
-
-}
-
-
-/* ========================================
-   VERY SMALL MOBILE
-======================================== */
-
-@media (max-width: 380px) {
-
-    header {
-        padding: 15px 12px;
-    }
-
-    header h1 {
-        font-size: 18px;
-    }
-
-    main {
-        width: 97%;
-    }
-
-    .panel {
-        padding: 12px;
-    }
-
-    .stats {
-        gap: 6px;
-    }
-
-    .stat-card {
-        padding: 10px 5px;
-    }
-
-    .stat-card span {
-        font-size: 10px;
-    }
-
-    .stat-card strong {
-        font-size: 16px;
-    }
-
-    .finance-summary {
-        gap: 6px;
-    }
-
-    .finance-card span {
-        font-size: 11px;
-    }
-
-    .finance-card strong {
-        font-size: 16px;
-    }
-
-    .member-grid {
-        gap: 5px;
-    }
-
-    .member-card {
-        padding: 11px 3px;
+        padding: 15px;
     }
 
     .member-name {
-        font-size: 13px;
+        font-size: 17px;
+    }
+
+    .member-actions {
+        gap: 6px;
     }
 
     .member-actions button {
-        padding: 5px;
+        min-height: 38px;
 
-        font-size: 8px;
+        padding:
+            6px 10px;
+
+        font-size: 11px;
+    }
+
+    .member-actions .sort-btn {
+        width: 38px;
+    }
+
+
+    /* Calculator */
+
+    .calculator {
+        grid-template-columns: 1fr;
+
+        gap: 12px;
+    }
+
+    .input-group input {
+        min-height: 46px;
+
+        font-size: 16px;
+    }
+
+    .calc-result {
+        min-height: 60px;
+    }
+
+
+    /* Settings */
+
+    .settings-buttons {
+        flex-direction: column;
+    }
+
+    .settings-buttons .danger-btn {
+        width: 100%;
+
+        min-height: 44px;
+    }
+
+
+    /* Footer */
+
+    footer {
+        padding-bottom: 30px;
     }
 
 }
 
 
-/* ========================================
-   TOUCH DEVICE
-======================================== */
+/* =========================================================
+   Very Small Smartphone
+========================================================= */
+
+@media (max-width: 380px) {
+
+    main {
+        width: calc(100% - 14px);
+    }
+
+    .panel {
+        padding:
+            14px 11px;
+    }
+
+    header {
+        padding:
+            13px 10px;
+    }
+
+    header h1 {
+        font-size: 19px;
+    }
+
+    .stats {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+    .finance-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .member-actions button {
+        padding:
+            5px 8px;
+
+        font-size: 10px;
+    }
+
+}
+
+
+/* =========================================================
+   Touch / Mobile improvements
+========================================================= */
 
 @media (hover: none) {
 
-    .event-card:hover,
-    .member-card:hover {
-        transform: none;
+    .event-card:hover {
+        border-color: #e5e7eb;
     }
 
-    button {
+    .primary-btn,
+    .header-btn,
+    .bulk-btn,
+    .filter-btn,
+    .member-actions button,
+    .fee-change-btn {
         touch-action: manipulation;
     }
 
 }
 
 
-/* ========================================
-   SAFE AREA
-   iPhoneなどのノッチ対応
-======================================== */
+/* =========================================================
+   Prevent iOS input zoom
+========================================================= */
 
-@supports (padding: env(safe-area-inset-bottom)) {
+@media (max-width: 640px) {
 
-    footer {
-        padding-bottom:
-            calc(
-                30px +
-                env(safe-area-inset-bottom)
-            );
+    input,
+    select,
+    textarea {
+        font-size: 16px;
     }
 
 }
