@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circle Accounting</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header>
+    <div class="header-inner">
+
+```
+    <div>
+        <h1>⚽ Circle Accounting</h1>
+        <p>サークル会計管理システム</p>
+    </div>
+
+    <div class="header-actions">
+
+        <button
+            class="header-btn"
+            onclick="exportData()">
+            💾 バックアップ
+        </button>
+
+        <label class="header-btn import-btn">
+            📂 復元
+
+            <input
+                type="file"
+                id="importFile"
+                accept=".json"
+                onchange="importData(event)"
+                hidden
+            >
+        </label>
+
+    </div>
+
+</div>
+```
+
+</header>
+
+<main>
+
+<!-- =========================
+     サークル全体の会計
+========================= -->
+
+<section class="panel">
+
+```
+<div class="section-header">
+
+    <div>
+        <h2>🏦 サークル全体の会計</h2>
+
+        <p class="description">
+            全ての会計を合算した現在の収支
+        </p>
+    </div>
+
+</div>
+
+<div class="overall-finance">
+
+    <div class="overall-card">
+        <span>💰 総収入</span>
+
+        <strong id="overallIncome">
+            ¥0
+        </strong>
+    </div>
+
+    <div class="overall-card">
+        <span>💸 総支出</span>
+
+        <strong id="overallExpense">
+            ¥0
+        </strong>
+    </div>
+
+    <div class="overall-card">
+        <span>🏦 現在残高</span>
+
+        <strong id="overallBalance">
+            ¥0
+        </strong>
+    </div>
+
+</div>
+```
+
+</section>
+
+<!-- =========================
+     会計目的
+========================= -->
+
+<section class="panel">
+
+```
+<div class="section-header">
+
+    <div>
+
+        <h2>📋 会計目的</h2>
+
+        <p class="description">
+            会計を目的ごとに分けて管理できます
+        </p>
+
+    </div>
+
+    <button
+        class="primary-btn"
+        onclick="addEvent()">
+        ＋ 目的を追加
+    </button>
+
+</div>
+
+<div
+    id="eventList"
+    class="event-list">
+</div>
+```
+
+</section>
+
+<!-- =========================
+     現在の会計
+========================= -->
+
+<section class="panel">
+
+```
+<div class="selected-event">
+
+    <div>
+
+        <span class="small-label">
+            現在の会計
+        </span>
+
+        <h2 id="currentEventName">
+            会計を選択してください
+        </h2>
+
+    </div>
+
+    <div class="fee-control">
+
+        <span class="small-label">
+            参加費
+        </span>
+
+        <strong id="currentFee">
+            ¥0
+        </strong>
+
+        <button
+            class="fee-change-btn"
+            onclick="changeFee()">
+            ✏️ 参加費変更
+        </button>
+
+    </div>
+
+</div>
+
+
+<div class="stats">
+
+    <div class="stat-card">
+        <span>参加者</span>
+
+        <strong id="participantCount">
+            0人
+        </strong>
+    </div>
+
+
+    <div class="stat-card">
+        <span>支払い済み</span>
+
+        <strong id="paidCount">
+            0人
+        </strong>
+    </div>
+
+
+    <div class="stat-card">
+        <span>未払い</span>
+
+        <strong id="unpaidCount">
+            0人
+        </strong>
+    </div>
+
+
+    <div class="stat-card">
+        <span>不参加</span>
+
+        <strong id="absentCount">
+            0人
+        </strong>
+    </div>
+
+
+    <div class="stat-card money">
+        <span>💰 集めたお金</span>
+
+        <strong id="collectedMoney">
+            ¥0
+        </strong>
+    </div>
+
+
+    <div class="stat-card money">
+        <span>💸 まだ集めるお金</span>
+
+        <strong id="remainingMoney">
+            ¥0
+        </strong>
+    </div>
+
+</div>
+```
+
+</section>
+
+<!-- =========================
+     収支管理
+========================= -->
+
+<section class="panel">
+
+```
+<div class="section-header">
+
+    <div>
+
+        <h2>💰 会計帳簿</h2>
+
+        <p class="description">
+            参加費・その他収入・支出を分けて管理します
+        </p>
+
+    </div>
+
+    <div class="finance-buttons">
+
+        <button
+            class="income-btn"
+            onclick="addIncome()">
+            ＋ その他収入
+        </button>
+
+        <button
+            class="expense-btn"
+            onclick="addExpense()">
+            ＋ 支出
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     会計サマリー
+========================= -->
+
+<div class="finance-summary">
+
+    <div class="finance-card income-card">
+
+        <span>参加費回収</span>
+
+        <strong id="participationIncomeTotal">
+            ¥0
+        </strong>
+
+    </div>
+
+
+    <div class="finance-card income-card">
+
+        <span>その他収入</span>
+
+        <strong id="otherIncomeTotal">
+            ¥0
+        </strong>
+
+    </div>
+
+
+    <div class="finance-card expense-card">
+
+        <span>支出</span>
+
+        <strong id="expenseTotal">
+            ¥0
+        </strong>
+
+    </div>
+
+
+    <div class="finance-card balance-card">
+
+        <span>現在残高</span>
+
+        <strong id="balanceTotal">
+            ¥0
+        </strong>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     参加費回収
+========================= -->
+
+<div class="ledger-section">
+
+    <h3 class="finance-title income-title">
+        🟢 参加費回収
+    </h3>
+
+    <p class="description">
+        メンバーの「支払い済み」から自動計算されます
+    </p>
+
+    <div id="participationIncomeList"></div>
+
+</div>
+
+
+<!-- =========================
+     その他収入
+========================= -->
+
+<div class="ledger-section">
+
+    <h3 class="finance-title income-title">
+        🔵 その他収入
+    </h3>
+
+    <div id="incomeList"></div>
+
+</div>
+
+
+<!-- =========================
+     支出
+========================= -->
+
+<div class="ledger-section">
+
+    <h3 class="finance-title expense-title">
+        🔴 支出
+    </h3>
+
+    <div id="expenseList"></div>
+
+</div>
+```
+
+</section>
+
+<!-- =========================
+     グループ
+========================= -->
+
+<section class="panel">
+
+```
+<div class="section-header">
+
+    <div>
+
+        <h2>🎨 グループ管理</h2>
+
+        <p class="description">
+            メンバーをグループごとに色分けできます
+        </p>
+
+    </div>
+
+    <button
+        class="primary-btn"
+        onclick="addGroup()">
+        ＋ グループ追加
+    </button>
+
+</div>
+
+
+<div
+    id="groupList"
+    class="group-list">
+</div>
+```
+
+</section>
+
+<!-- =========================
+     メンバー
+========================= -->
+
+<section class="panel">
+
+```
+<div class="section-header">
+
+    <div>
+
+        <h2>👥 メンバー</h2>
+
+        <p class="description">
+            名前を押すと支払い済みになります
+        </p>
+
+    </div>
+
+    <button
+        class="primary-btn"
+        onclick="addMember()">
+        ＋ メンバー追加
+    </button>
+
+</div>
+
+
+<!-- =========================
+     一括操作
+========================= -->
+
+<div class="bulk-actions">
+
+    <button
+        class="bulk-btn absent-bulk"
+        onclick="bulkAbsent()">
+        🚫 一括不参加
+    </button>
+
+    <button
+        class="bulk-btn present-bulk"
+        onclick="bulkPresent()">
+        👥 全員参加に戻す
+    </button>
+
+    <button
+        class="bulk-btn sort-bulk"
+        onclick="sortMembersByName()">
+        🔤 名前順
+    </button>
+
+</div>
+
+
+<!-- =========================
+     凡例
+========================= -->
+
+<div class="legend">
+
+    <span>
+        <i class="dot unpaid"></i>
+        未払い
+    </span>
+
+    <span>
+        <i class="dot paid"></i>
+        支払い済み
+    </span>
+
+    <span>
+        <i class="dot absent"></i>
+        不参加
+    </span>
+
+</div>
+
+
+<!-- =========================
+     グループフィルター
+========================= -->
+
+<div
+    id="groupFilter"
+    class="group-filter">
+</div>
+
+
+<!-- =========================
+     メンバー
+========================= -->
+
+<div
+    id="memberList"
+    class="member-grid">
+</div>
+```
+
+</section>
+
+<!-- =========================
+     計算機
+========================= -->
+
+<section class="panel">
+
+```
+<div class="section-header">
+
+    <div>
+
+        <h2>🧮 会計計算</h2>
+
+        <p class="description">
+            合計金額から1人あたりの金額を計算
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="calculator">
+
+    <div class="input-group">
+
+        <label>
+            参加者数
+        </label>
+
+        <input
+            type="number"
+            id="calcPeople"
+            value="10"
+            min="1"
+            oninput="calculateCustom()">
+
+    </div>
+
+
+    <div class="input-group">
+
+        <label>
+            合計金額
+        </label>
+
+        <input
+            type="number"
+            id="calcTotal"
+            value="30000"
+            min="0"
+            oninput="calculateCustom()">
+
+    </div>
+
+
+    <div class="calc-result">
+
+        <span>
+            1人あたり
+        </span>
+
+        <strong id="calcPerPerson">
+            ¥3,000
+        </strong>
+
+    </div>
+
+</div>
+```
+
+</section>
+
+<!-- =========================
+     データ管理
+========================= -->
+
+<section class="panel settings-panel">
+
+```
+<h2>
+    ⚙️ データ管理
+</h2>
+
+<p class="description">
+    バックアップを使えば別のPCでもデータを復元できます
+</p>
+
+
+<div class="settings-buttons">
+
+    <button
+        onclick="resetCurrentEvent()"
+        class="danger-btn">
+        現在の会計をリセット
+    </button>
+
+
+    <button
+        onclick="resetAllData()"
+        class="danger-btn">
+        全データを削除
+    </button>
+
+</div>
+```
+
+</section>
+
+</main>
+
+<!-- =========================
+     フッター
+========================= -->
+
+<footer>
+
+```
+<p>
+    Circle Accounting
+</p>
+
+<span>
+    データはこのブラウザに自動保存されます
+</span>
+```
+
+</footer>
+
+<script src="script.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,1666 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Noto Sans JP",
+        sans-serif;
+
+    background: #f4f6f8;
+    color: #222;
+    min-height: 100vh;
+
+    -webkit-tap-highlight-color: transparent;
+}
+
+
+/* ========================================
+   HEADER
+======================================== */
+
+header {
+    background: #111827;
+    color: white;
+    padding: 22px 20px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+}
+
+.header-inner {
+    width: min(1100px, 94%);
+    margin: auto;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 20px;
+}
+
+header h1 {
+    font-size: 25px;
+}
+
+header p {
+    margin-top: 5px;
+    color: #cbd5e1;
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.header-btn {
+    background: #374151;
+    color: white;
+
+    border: none;
+    border-radius: 9px;
+
+    padding: 9px 13px;
+
+    font-weight: bold;
+    font-size: 12px;
+
+    cursor: pointer;
+
+    min-height: 40px;
+}
+
+.header-btn:hover {
+    background: #4b5563;
+}
+
+.import-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ========================================
+   MAIN
+======================================== */
+
+main {
+    width: min(1100px, 94%);
+    margin: 25px auto;
+}
+
+
+/* ========================================
+   PANEL
+======================================== */
+
+.panel {
+    background: white;
+
+    border-radius: 16px;
+
+    padding: 22px;
+
+    margin-bottom: 20px;
+
+    box-shadow:
+        0 3px 15px rgba(0,0,0,0.06);
+}
+
+.section-header {
+    display: flex;
+
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 15px;
+
+    margin-bottom: 18px;
+}
+
+.section-header h2 {
+    font-size: 20px;
+}
+
+.description {
+    color: #777;
+    font-size: 13px;
+
+    margin-top: 5px;
+}
+
+
+/* ========================================
+   BUTTON
+======================================== */
+
+button {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+
+    -webkit-tap-highlight-color: transparent;
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+.primary-btn {
+    background: #2563eb;
+    color: white;
+
+    padding: 11px 16px;
+
+    border-radius: 10px;
+
+    font-weight: bold;
+
+    transition: 0.2s;
+
+    min-height: 42px;
+}
+
+.primary-btn:hover {
+    background: #1d4ed8;
+}
+
+.danger-btn {
+    background: #fee2e2;
+    color: #b91c1c;
+
+    padding: 11px 16px;
+
+    border-radius: 10px;
+
+    font-weight: bold;
+
+    min-height: 42px;
+}
+
+
+/* ========================================
+   EVENT
+======================================== */
+
+.event-list {
+    display: flex;
+
+    gap: 10px;
+
+    flex-wrap: wrap;
+}
+
+.event-card {
+    position: relative;
+
+    background: #f1f5f9;
+
+    border: 2px solid transparent;
+
+    border-radius: 12px;
+
+    padding: 14px 45px 14px 15px;
+
+    min-width: 180px;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+
+    user-select: none;
+}
+
+.event-card:hover {
+    transform: translateY(-2px);
+}
+
+.event-card.active {
+    background: #eff6ff;
+
+    border-color: #2563eb;
+}
+
+.event-name {
+    font-weight: bold;
+}
+
+.event-fee {
+    color: #64748b;
+
+    font-size: 13px;
+
+    margin-top: 4px;
+}
+
+.delete-event {
+    position: absolute;
+
+    right: 10px;
+    top: 10px;
+
+    background: transparent;
+
+    color: #94a3b8;
+
+    font-size: 16px;
+
+    width: 30px;
+    height: 30px;
+
+    border-radius: 6px;
+}
+
+
+/* ========================================
+   SELECTED EVENT
+======================================== */
+
+.selected-event {
+    display: flex;
+
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 20px;
+
+    background: #f8fafc;
+
+    padding: 18px;
+
+    border-radius: 12px;
+}
+
+.small-label {
+    display: block;
+
+    color: #64748b;
+
+    font-size: 12px;
+
+    margin-bottom: 4px;
+}
+
+#currentEventName {
+    font-size: 22px;
+}
+
+#currentFee {
+    font-size: 25px;
+}
+
+
+/* ========================================
+   FEE
+======================================== */
+
+.fee-control {
+    display: flex;
+    flex-direction: column;
+
+    align-items: flex-end;
+
+    gap: 5px;
+
+    flex-shrink: 0;
+}
+
+.fee-change-btn {
+    border: none;
+
+    background: #eef2ff;
+    color: #4338ca;
+
+    padding: 7px 10px;
+
+    border-radius: 7px;
+
+    font-size: 12px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    min-height: 34px;
+}
+
+.fee-change-btn:hover {
+    opacity: 0.8;
+}
+
+
+/* ========================================
+   STATS
+======================================== */
+
+.stats {
+    display: grid;
+
+    grid-template-columns:
+        repeat(6, 1fr);
+
+    gap: 10px;
+
+    margin-top: 15px;
+}
+
+.stat-card {
+    background: #f8fafc;
+
+    border-radius: 12px;
+
+    padding: 15px;
+
+    text-align: center;
+
+    min-width: 0;
+}
+
+.stat-card span {
+    display: block;
+
+    color: #64748b;
+
+    font-size: 12px;
+}
+
+.stat-card strong {
+    display: block;
+
+    margin-top: 5px;
+
+    font-size: 20px;
+
+    overflow-wrap: anywhere;
+}
+
+.stat-card.money strong {
+    font-size: 18px;
+}
+
+
+/* ========================================
+   FINANCE
+======================================== */
+
+.finance-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.income-btn {
+    background: #dcfce7;
+    color: #15803d;
+
+    padding: 10px 14px;
+
+    border-radius: 9px;
+
+    font-weight: bold;
+
+    min-height: 40px;
+}
+
+.expense-btn {
+    background: #fee2e2;
+    color: #b91c1c;
+
+    padding: 10px 14px;
+
+    border-radius: 9px;
+
+    font-weight: bold;
+
+    min-height: 40px;
+}
+
+.finance-summary {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
+    gap: 12px;
+
+    margin-bottom: 22px;
+}
+
+.finance-card {
+    border-radius: 13px;
+
+    padding: 18px;
+
+    text-align: center;
+
+    min-width: 0;
+}
+
+.finance-card span {
+    display: block;
+
+    font-size: 13px;
+
+    color: #64748b;
+}
+
+.finance-card strong {
+    display: block;
+
+    margin-top: 5px;
+
+    font-size: 25px;
+
+    overflow-wrap: anywhere;
+}
+
+.income-card {
+    background: #f0fdf4;
+}
+
+.income-card strong {
+    color: #16a34a;
+}
+
+.expense-card {
+    background: #fef2f2;
+}
+
+.expense-card strong {
+    color: #dc2626;
+}
+
+.balance-card {
+    background: #eff6ff;
+}
+
+.balance-card strong {
+    color: #2563eb;
+}
+
+.finance-columns {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 20px;
+}
+
+.finance-title {
+    margin-bottom: 10px;
+
+    font-size: 16px;
+}
+
+.income-title {
+    color: #15803d;
+}
+
+.expense-title {
+    color: #b91c1c;
+}
+
+.ledger-section {
+    margin-top: 20px;
+}
+
+
+/* ========================================
+   FINANCE ITEM
+======================================== */
+
+.finance-item {
+    display: flex;
+
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 12px;
+
+    background: #f8fafc;
+
+    border-radius: 10px;
+
+    padding: 12px;
+
+    margin-bottom: 7px;
+
+    min-width: 0;
+}
+
+.finance-item-left {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+
+    min-width: 0;
+}
+
+.finance-item-name {
+    font-weight: bold;
+
+    font-size: 14px;
+
+    overflow-wrap: anywhere;
+}
+
+.finance-item-date {
+    font-size: 11px;
+
+    color: #94a3b8;
+}
+
+.finance-item-right {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    flex-shrink: 0;
+}
+
+.finance-item-amount {
+    font-weight: bold;
+
+    white-space: nowrap;
+}
+
+.income-amount {
+    color: #16a34a;
+}
+
+.expense-amount {
+    color: #dc2626;
+}
+
+.delete-finance {
+    background: #e5e7eb;
+
+    color: #6b7280;
+
+    width: 30px;
+    height: 30px;
+
+    border-radius: 6px;
+
+    flex-shrink: 0;
+}
+
+
+/* ========================================
+   GROUP
+======================================== */
+
+.group-list {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 10px;
+}
+
+.group-card {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 10px 13px;
+
+    border-radius: 10px;
+
+    border: 1px solid #e5e7eb;
+
+    background: #f8fafc;
+}
+
+.group-color {
+    width: 14px;
+    height: 14px;
+
+    border-radius: 50%;
+
+    flex-shrink: 0;
+}
+
+.group-name {
+    font-weight: bold;
+
+    font-size: 13px;
+}
+
+.group-count {
+    color: #64748b;
+
+    font-size: 11px;
+}
+
+.group-delete {
+    margin-left: 5px;
+
+    background: #fee2e2;
+
+    color: #b91c1c;
+
+    width: 28px;
+    height: 28px;
+
+    border-radius: 5px;
+}
+
+
+/* ========================================
+   GROUP FILTER
+======================================== */
+
+.group-filter {
+    display: flex;
+
+    gap: 8px;
+
+    flex-wrap: wrap;
+
+    margin-bottom: 15px;
+}
+
+.filter-btn {
+    background: #f1f5f9;
+
+    color: #475569;
+
+    padding: 8px 12px;
+
+    border-radius: 8px;
+
+    font-size: 12px;
+
+    min-height: 36px;
+}
+
+.filter-btn.active {
+    background: #2563eb;
+
+    color: white;
+}
+
+
+/* ========================================
+   LEGEND
+======================================== */
+
+.legend {
+    display: flex;
+
+    gap: 18px;
+
+    margin-bottom: 15px;
+
+    color: #555;
+
+    font-size: 13px;
+
+    flex-wrap: wrap;
+}
+
+.dot {
+    display: inline-block;
+
+    width: 10px;
+    height: 10px;
+
+    border-radius: 50%;
+
+    margin-right: 5px;
+}
+
+.dot.unpaid {
+    background: #f59e0b;
+}
+
+.dot.paid {
+    background: #22c55e;
+}
+
+.dot.absent {
+    background: #cbd5e1;
+}
+
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+.bulk-actions {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 8px;
+
+    margin-bottom: 15px;
+}
+
+.bulk-btn {
+    padding: 9px 13px;
+
+    border-radius: 9px;
+
+    font-weight: bold;
+
+    font-size: 12px;
+
+    min-height: 38px;
+}
+
+.absent-bulk {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.present-bulk {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.sort-bulk {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.sort-btn {
+    background: #f1f5f9;
+    color: #475569;
+
+    width: 30px;
+    height: 30px;
+
+    border-radius: 6px;
+
+    font-weight: bold;
+}
+
+
+/* ========================================
+   MEMBER
+======================================== */
+
+.member-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
+    gap: 12px;
+}
+
+.member-card {
+    position: relative;
+
+    background: #fff7ed;
+
+    border: 2px solid #fed7aa;
+
+    border-radius: 13px;
+
+    padding: 18px 10px;
+
+    text-align: center;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+
+    user-select: none;
+
+    overflow: hidden;
+
+    min-width: 0;
+}
+
+.member-card:hover {
+    transform: translateY(-2px);
+}
+
+.member-card:active {
+    transform: scale(0.97);
+}
+
+
+/* グループカラー */
+
+.member-card.group-colored {
+    border-color: var(--group-color);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--group-color) 10%,
+            white
+        );
+}
+
+
+/* 支払い済み */
+
+.member-card.paid {
+    border-color: #86efac;
+
+    background: #f0fdf4;
+}
+
+
+/* 不参加 */
+
+.member-card.absent {
+    background: #e5e7eb;
+
+    border-color: #d1d5db;
+
+    color: #9ca3af;
+
+    opacity: 0.65;
+}
+
+
+/* グループ名 */
+
+.member-group {
+    display: inline-block;
+
+    margin-bottom: 5px;
+
+    padding: 3px 7px;
+
+    border-radius: 5px;
+
+    font-size: 10px;
+
+    background: var(--group-color);
+
+    color: #374151;
+
+    max-width: 100%;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+.member-name {
+    font-weight: bold;
+
+    font-size: 16px;
+
+    overflow-wrap: anywhere;
+}
+
+.member-status {
+    margin-top: 7px;
+
+    font-size: 12px;
+}
+
+.member-card.paid .member-status {
+    color: #16a34a;
+
+    font-weight: bold;
+}
+
+.member-card.absent .member-status {
+    color: #6b7280;
+}
+
+.member-actions {
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 5px;
+
+    margin-top: 10px;
+
+    flex-wrap: wrap;
+}
+
+.member-actions button {
+    padding: 6px 8px;
+
+    border-radius: 7px;
+
+    font-size: 11px;
+
+    min-height: 30px;
+}
+
+.absent-btn {
+    background: #e2e8f0;
+
+    color: #475569;
+}
+
+.group-btn {
+    background: #e0e7ff;
+
+    color: #4338ca;
+}
+
+.delete-member {
+    background: #fee2e2;
+
+    color: #b91c1c;
+}
+
+
+/* ========================================
+   CALCULATOR
+======================================== */
+
+.calculator {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr 1fr;
+
+    gap: 15px;
+
+    align-items: end;
+}
+
+.input-group label {
+    display: block;
+
+    font-size: 13px;
+
+    margin-bottom: 6px;
+
+    color: #64748b;
+}
+
+.input-group input {
+    width: 100%;
+
+    padding: 13px;
+
+    border: 1px solid #cbd5e1;
+
+    border-radius: 9px;
+
+    font-size: 16px;
+
+    min-height: 46px;
+
+    appearance: none;
+}
+
+.input-group input:focus {
+    outline: none;
+
+    border-color: #2563eb;
+
+    box-shadow:
+        0 0 0 3px rgba(37,99,235,0.12);
+}
+
+.calc-result {
+    background: #eff6ff;
+
+    border-radius: 10px;
+
+    padding: 13px;
+
+    text-align: center;
+}
+
+.calc-result span {
+    display: block;
+
+    font-size: 12px;
+
+    color: #64748b;
+}
+
+.calc-result strong {
+    display: block;
+
+    margin-top: 3px;
+
+    font-size: 22px;
+
+    color: #2563eb;
+}
+
+
+/* ========================================
+   OVERALL FINANCE
+======================================== */
+
+.overall-finance {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 15px;
+}
+
+.overall-card {
+    padding: 22px;
+
+    border-radius: 14px;
+
+    background: #f8fafc;
+
+    border: 1px solid #e2e8f0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+
+    min-width: 0;
+}
+
+.overall-card span {
+    font-size: 13px;
+
+    color: #64748b;
+}
+
+.overall-card strong {
+    font-size: 26px;
+
+    font-weight: 800;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* ========================================
+   SETTINGS
+======================================== */
+
+.settings-panel h2 {
+    margin-bottom: 8px;
+}
+
+.settings-buttons {
+    display: flex;
+
+    gap: 10px;
+
+    flex-wrap: wrap;
+
+    margin-top: 15px;
+}
+
+
+/* ========================================
+   FOOTER
+======================================== */
+
+footer {
+    text-align: center;
+
+    color: #64748b;
+
+    padding: 30px 10px;
+
+    font-size: 13px;
+}
+
+footer span {
+    display: block;
+
+    margin-top: 5px;
+
+    font-size: 11px;
+}
+
+
+/* ========================================
+   TABLET
+======================================== */
+
+@media (max-width: 900px) {
+
+    .stats {
+        grid-template-columns:
+            repeat(3, 1fr);
+    }
+
+    .member-grid {
+        grid-template-columns:
+            repeat(3, 1fr);
+    }
+
+    .finance-summary {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+}
+
+
+/* ========================================
+   MOBILE
+======================================== */
+
+@media (max-width: 700px) {
+
+    main {
+        width: 94%;
+
+        margin-top: 16px;
+        margin-bottom: 16px;
+    }
+
+    .panel {
+        padding: 16px;
+
+        border-radius: 13px;
+
+        margin-bottom: 14px;
+    }
+
+
+    /* HEADER */
+
+    header {
+        padding: 17px 15px;
+    }
+
+    .header-inner {
+        width: 100%;
+
+        flex-direction: column;
+
+        align-items: stretch;
+
+        gap: 13px;
+    }
+
+    header h1 {
+        font-size: 21px;
+    }
+
+    header p {
+        font-size: 12px;
+    }
+
+    .header-actions {
+        width: 100%;
+    }
+
+    .header-btn {
+        flex: 1;
+
+        text-align: center;
+
+        min-height: 42px;
+    }
+
+
+    /* SECTION */
+
+    .section-header {
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 12px;
+    }
+
+    .section-header h2 {
+        font-size: 18px;
+    }
+
+    .section-header .primary-btn {
+        width: 100%;
+    }
+
+
+    /* EVENT */
+
+    .event-list {
+        display: grid;
+
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+    .event-card {
+        min-width: 0;
+
+        width: 100%;
+    }
+
+
+    /* SELECTED EVENT */
+
+    .selected-event {
+        align-items: stretch;
+
+        flex-direction: column;
+
+        gap: 15px;
+    }
+
+    .fee-control {
+        align-items: flex-start;
+    }
+
+    .fee-change-btn {
+        width: 100%;
+    }
+
+    #currentEventName {
+        font-size: 19px;
+    }
+
+    #currentFee {
+        font-size: 22px;
+    }
+
+
+    /* STATS */
+
+    .stats {
+        grid-template-columns:
+            repeat(2, 1fr);
+
+        gap: 8px;
+    }
+
+    .stat-card {
+        padding: 13px 8px;
+    }
+
+    .stat-card strong {
+        font-size: 18px;
+    }
+
+    .stat-card.money strong {
+        font-size: 16px;
+    }
+
+
+    /* FINANCE */
+
+    .finance-buttons {
+        width: 100%;
+
+        flex-direction: column;
+    }
+
+    .income-btn,
+    .expense-btn {
+        width: 100%;
+
+        min-height: 42px;
+    }
+
+    .finance-summary {
+        grid-template-columns:
+            repeat(2, 1fr);
+
+        gap: 8px;
+    }
+
+    .finance-card {
+        padding: 14px 8px;
+    }
+
+    .finance-card strong {
+        font-size: 20px;
+    }
+
+    .finance-columns {
+        grid-template-columns:
+            1fr;
+    }
+
+
+    /* OVERALL */
+
+    .overall-finance {
+        grid-template-columns:
+            1fr;
+    }
+
+    .overall-card {
+        padding: 17px;
+    }
+
+    .overall-card strong {
+        font-size: 23px;
+    }
+
+
+    /* GROUP */
+
+    .group-list {
+        gap: 7px;
+    }
+
+    .group-card {
+        padding: 9px 10px;
+    }
+
+
+    /* BULK */
+
+    .bulk-actions {
+        display: grid;
+
+        grid-template-columns:
+            1fr 1fr;
+
+        gap: 7px;
+    }
+
+    .bulk-btn {
+        width: 100%;
+    }
+
+    .sort-bulk {
+        grid-column:
+            1 / -1;
+    }
+
+
+    /* MEMBER */
+
+    .member-grid {
+        grid-template-columns:
+            repeat(2, 1fr);
+
+        gap: 8px;
+    }
+
+    .member-card {
+        padding: 14px 7px;
+
+        border-radius: 11px;
+    }
+
+    .member-name {
+        font-size: 14px;
+    }
+
+    .member-status {
+        font-size: 11px;
+    }
+
+    .member-actions {
+        gap: 4px;
+    }
+
+    .member-actions button {
+        padding: 6px 7px;
+
+        font-size: 10px;
+
+        min-height: 30px;
+    }
+
+
+    /* LEGEND */
+
+    .legend {
+        gap: 9px;
+
+        font-size: 11px;
+    }
+
+
+    /* CALCULATOR */
+
+    .calculator {
+        grid-template-columns:
+            1fr;
+
+        gap: 10px;
+    }
+
+    .calc-result {
+        padding: 16px;
+    }
+
+
+    /* SETTINGS */
+
+    .settings-buttons {
+        display: grid;
+
+        grid-template-columns:
+            1fr;
+    }
+
+    .danger-btn {
+        width: 100%;
+    }
+
+
+    /* FINANCE ITEM */
+
+    .finance-item {
+        padding: 11px 9px;
+    }
+
+    .finance-item-name {
+        font-size: 13px;
+    }
+
+    .finance-item-amount {
+        font-size: 13px;
+    }
+
+}
+
+
+/* ========================================
+   SMALL MOBILE
+======================================== */
+
+@media (max-width: 500px) {
+
+    main {
+        width: 96%;
+    }
+
+    .panel {
+        padding: 14px;
+    }
+
+    header h1 {
+        font-size: 20px;
+    }
+
+    .event-list {
+        grid-template-columns:
+            1fr;
+    }
+
+    .stats {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+    .stat-card {
+        min-height: 78px;
+
+        display: flex;
+
+        flex-direction: column;
+
+        justify-content: center;
+    }
+
+    .finance-summary {
+        grid-template-columns:
+            1fr 1fr;
+    }
+
+    .finance-card {
+        min-height: 85px;
+
+        display: flex;
+
+        flex-direction: column;
+
+        justify-content: center;
+    }
+
+    .finance-card strong {
+        font-size: 18px;
+    }
+
+    .member-grid {
+        grid-template-columns:
+            repeat(2, 1fr);
+
+        gap: 7px;
+    }
+
+    .member-card {
+        padding: 13px 5px;
+    }
+
+    .member-actions button {
+        padding: 5px 6px;
+
+        font-size: 9px;
+    }
+
+    .legend {
+        gap: 7px;
+
+        font-size: 10px;
+    }
+
+}
+
+
+/* ========================================
+   VERY SMALL MOBILE
+======================================== */
+
+@media (max-width: 380px) {
+
+    header {
+        padding: 15px 12px;
+    }
+
+    header h1 {
+        font-size: 18px;
+    }
+
+    main {
+        width: 97%;
+    }
+
+    .panel {
+        padding: 12px;
+    }
+
+    .stats {
+        gap: 6px;
+    }
+
+    .stat-card {
+        padding: 10px 5px;
+    }
+
+    .stat-card span {
+        font-size: 10px;
+    }
+
+    .stat-card strong {
+        font-size: 16px;
+    }
+
+    .finance-summary {
+        gap: 6px;
+    }
+
+    .finance-card span {
+        font-size: 11px;
+    }
+
+    .finance-card strong {
+        font-size: 16px;
+    }
+
+    .member-grid {
+        gap: 5px;
+    }
+
+    .member-card {
+        padding: 11px 3px;
+    }
+
+    .member-name {
+        font-size: 13px;
+    }
+
+    .member-actions button {
+        padding: 5px;
+
+        font-size: 8px;
+    }
+
+}
+
+
+/* ========================================
+   TOUCH DEVICE
+======================================== */
+
+@media (hover: none) {
+
+    .event-card:hover,
+    .member-card:hover {
+        transform: none;
+    }
+
+    button {
+        touch-action: manipulation;
+    }
+
+}
+
+
+/* ========================================
+   SAFE AREA
+   iPhoneなどのノッチ対応
+======================================== */
+
+@supports (padding: env(safe-area-inset-bottom)) {
+
+    footer {
+        padding-bottom:
+            calc(
+                30px +
+                env(safe-area-inset-bottom)
+            );
+    }
+
+}
