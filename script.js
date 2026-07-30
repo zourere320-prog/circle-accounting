@@ -1,7 +1,7 @@
-```javascript
 /* =====================================================
    Circle Accounting
    Firebase Firestore + LocalStorage
+   安定版
 ===================================================== */
 
 import {
@@ -21,63 +21,71 @@ import {
 ===================================================== */
 
 const firebaseConfig = {
-
-    apiKey:
-        "AIzaSyAvDWjqiv4G-fMW3_ovTtDLXT-514Q5TX8",
-
-    authDomain:
-        "circle-accounting-b2194.firebaseapp.com",
-
-    projectId:
-        "circle-accounting-b2194",
-
-    storageBucket:
-        "circle-accounting-b2194.firebasestorage.app",
-
-    messagingSenderId:
-        "122808479714",
-
-    appId:
-        "1:122808479714:web:b4f74aa3412064bee653bb"
-
+    apiKey: "AIzaSyAvDWjqiv4G-fMW3_ovTtDLXT-514Q5TX8",
+    authDomain: "circle-accounting-b2194.firebaseapp.com",
+    projectId: "circle-accounting-b2194",
+    storageBucket: "circle-accounting-b2194.firebasestorage.app",
+    messagingSenderId: "122808479714",
+    appId: "1:122808479714:web:b4f74aa3412064bee653bb"
 };
 
 
-const firebaseApp =
-    initializeApp(firebaseConfig);
+/* =====================================================
+   Firebase初期化
+===================================================== */
+
+let db = null;
+let firebaseReady = false;
+
+try {
+
+    const firebaseApp =
+        initializeApp(firebaseConfig);
+
+    db =
+        getFirestore(firebaseApp);
+
+    firebaseReady = true;
+
+    console.log("🔥 Firebase初期化成功");
+
+}
+catch (error) {
+
+    console.error(
+        "Firebase初期化エラー:",
+        error
+    );
+
+    firebaseReady = false;
+
+}
 
 
-const db =
-    getFirestore(firebaseApp);
-
-
-/*
-    Firestoreに保存する場所
-
-    circleAccounting
-        └── main
-              └── data
-*/
+/* =====================================================
+   Firestore保存先
+===================================================== */
 
 const cloudDataRef =
-    doc(
-        db,
-        "circleAccounting",
-        "main"
-    );
+    firebaseReady
+        ? doc(
+            db,
+            "circleAccounting",
+            "main"
+        )
+        : null;
 
 
 /* =====================================================
    Firebase状態
 ===================================================== */
 
-let firebaseReady = true;
-
 let cloudLoading = false;
+let cloudSaving = false;
 
 
 /* =====================================================
-   初期データ
+   初期グループ
 ===================================================== */
 
 const DEFAULT_GROUPS = [
@@ -91,27 +99,24 @@ const DEFAULT_GROUPS = [
 ];
 
 
+/* =====================================================
+   初期データ
+===================================================== */
+
 const DEFAULT_DATA = {
 
     events: [
 
         {
             id: 1,
-
             name: "新歓",
-
             fee: 3000,
-
             members: {},
-
             income: [],
-
             expenses: []
-
         }
 
     ],
-
 
     members: [
 
@@ -153,13 +158,10 @@ const DEFAULT_DATA = {
 
     ],
 
-
     groups:
-        DEFAULT_GROUPS,
+        structuredClone(DEFAULT_GROUPS),
 
-
-    currentEventId:
-        1
+    currentEventId: 1
 
 };
 
@@ -175,7 +177,6 @@ function loadLocalData() {
             "circleAccounting"
         );
 
-
     if (!saved) {
 
         return structuredClone(
@@ -184,28 +185,22 @@ function loadLocalData() {
 
     }
 
-
     try {
 
         const parsed =
             JSON.parse(saved);
 
-
         normalizeData(parsed);
-
 
         return parsed;
 
-
     }
-
     catch (error) {
 
         console.error(
             "LocalStorage読み込みエラー:",
             error
         );
-
 
         return structuredClone(
             DEFAULT_DATA
@@ -222,7 +217,12 @@ function loadLocalData() {
 
 function normalizeData(target) {
 
-    if (!target.groups) {
+    if (!target || typeof target !== "object") {
+        return;
+    }
+
+
+    if (!Array.isArray(target.groups)) {
 
         target.groups =
             structuredClone(
@@ -232,14 +232,14 @@ function normalizeData(target) {
     }
 
 
-    if (!target.members) {
+    if (!Array.isArray(target.members)) {
 
         target.members = [];
 
     }
 
 
-    if (!target.events) {
+    if (!Array.isArray(target.events)) {
 
         target.events = [];
 
@@ -247,7 +247,6 @@ function normalizeData(target) {
 
 
     target.members.forEach(
-
         member => {
 
             if (!member.groupId) {
@@ -257,12 +256,10 @@ function normalizeData(target) {
             }
 
         }
-
     );
 
 
     target.events.forEach(
-
         event => {
 
             if (!event.members) {
@@ -271,13 +268,11 @@ function normalizeData(target) {
 
             }
 
-
             if (!event.income) {
 
                 event.income = [];
 
             }
-
 
             if (!event.expenses) {
 
@@ -285,8 +280,14 @@ function normalizeData(target) {
 
             }
 
-        }
+            if (typeof event.fee !== "number") {
 
+                event.fee =
+                    Number(event.fee) || 0;
+
+            }
+
+        }
     );
 
 
@@ -316,10 +317,148 @@ let data =
 
 
 /* =====================================================
-   クラウド保存
+   LocalStorage保存
+===================================================== */
+
+function saveLocalOnly() {
+
+    try {
+
+        localStorage.setItem(
+            "circleAccounting",
+            JSON.stringify(data)
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            "LocalStorage保存エラー:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   クラウド状態表示
+===================================================== */
+
+function showCloudStatus(message) {
+
+    let status =
+        document.getElementById(
+            "cloudStatus"
+        );
+
+
+    if (!status) {
+
+        status =
+            document.createElement(
+                "div"
+            );
+
+        status.id =
+            "cloudStatus";
+
+
+        status.style.position =
+            "fixed";
+
+        status.style.right =
+            "15px";
+
+        status.style.bottom =
+            "15px";
+
+        status.style.zIndex =
+            "99999";
+
+        status.style.padding =
+            "9px 13px";
+
+        status.style.borderRadius =
+            "10px";
+
+        status.style.background =
+            "#111827";
+
+        status.style.color =
+            "white";
+
+        status.style.fontSize =
+            "12px";
+
+        status.style.fontWeight =
+            "bold";
+
+        status.style.boxShadow =
+            "0 4px 12px rgba(0,0,0,0.2)";
+
+        status.style.transition =
+            "opacity .3s";
+
+        document.body.appendChild(
+            status
+        );
+
+    }
+
+
+    status.textContent =
+        message;
+
+    status.style.opacity =
+        "1";
+
+
+    clearTimeout(
+        status._timer
+    );
+
+
+    status._timer =
+        setTimeout(
+            () => {
+
+                status.style.opacity =
+                    "0.75";
+
+            },
+            3000
+        );
+
+}
+
+
+/* =====================================================
+   Firebase保存
 ===================================================== */
 
 async function saveToCloud() {
+
+    if (
+        !firebaseReady ||
+        !cloudDataRef
+    ) {
+
+        return false;
+
+    }
+
+
+    if (cloudSaving) {
+
+        return false;
+
+    }
+
+
+    cloudSaving = true;
+
 
     try {
 
@@ -328,9 +467,12 @@ async function saveToCloud() {
             cloudDataRef,
 
             {
-                data: data,
+                data:
+                    structuredClone(data),
+
                 updatedAt:
                     new Date().toISOString()
+
             }
 
         );
@@ -349,7 +491,6 @@ async function saveToCloud() {
         return true;
 
     }
-
     catch (error) {
 
         console.error(
@@ -358,15 +499,17 @@ async function saveToCloud() {
         );
 
 
-        firebaseReady = false;
-
-
         showCloudStatus(
-            "⚠️ クラウド保存失敗"
+            "📱 ローカル保存済み"
         );
 
 
         return false;
+
+    }
+    finally {
+
+        cloudSaving = false;
 
     }
 
@@ -378,6 +521,16 @@ async function saveToCloud() {
 ===================================================== */
 
 async function loadFromCloud() {
+
+    if (
+        !firebaseReady ||
+        !cloudDataRef
+    ) {
+
+        return;
+
+    }
+
 
     cloudLoading = true;
 
@@ -407,17 +560,11 @@ async function loadFromCloud() {
                 );
 
 
-                localStorage.setItem(
-
-                    "circleAccounting",
-
-                    JSON.stringify(data)
-
-                );
+                saveLocalOnly();
 
 
                 console.log(
-                    "☁️ Firestoreから読み込み成功"
+                    "☁️ Firestoreデータ読み込み成功"
                 );
 
 
@@ -432,9 +579,8 @@ async function loadFromCloud() {
         else {
 
             /*
-                初回だけ
-                現在のローカルデータを
-                クラウドへ保存
+                Firestoreにまだデータがない場合だけ
+                現在のローカルデータを保存
             */
 
             await saveToCloud();
@@ -442,7 +588,6 @@ async function loadFromCloud() {
         }
 
     }
-
     catch (error) {
 
         console.error(
@@ -451,42 +596,40 @@ async function loadFromCloud() {
         );
 
 
-        firebaseReady = false;
-
+        /*
+            Firebaseが失敗しても
+            アプリはローカルで普通に動作
+        */
 
         showCloudStatus(
             "📱 オフラインモード"
         );
 
     }
+    finally {
 
+        cloudLoading = false;
 
-    cloudLoading = false;
+    }
 
 }
 
 
 /* =====================================================
-   保存
+   通常保存
 ===================================================== */
 
 function saveData() {
 
     /*
-        まずローカル保存
+        まず必ずローカル保存
     */
 
-    localStorage.setItem(
-
-        "circleAccounting",
-
-        JSON.stringify(data)
-
-    );
+    saveLocalOnly();
 
 
     /*
-        クラウド保存
+        Firebase保存
     */
 
     if (
@@ -505,108 +648,15 @@ function saveData() {
 
 
 /* =====================================================
-   クラウド状態表示
-===================================================== */
-
-function showCloudStatus(message) {
-
-    let status =
-        document.getElementById(
-            "cloudStatus"
-        );
-
-
-    if (!status) {
-
-        status =
-            document.createElement(
-                "div"
-            );
-
-
-        status.id =
-            "cloudStatus";
-
-
-        status.style.position =
-            "fixed";
-
-        status.style.right =
-            "15px";
-
-        status.style.bottom =
-            "15px";
-
-        status.style.zIndex =
-            "9999";
-
-        status.style.padding =
-            "9px 13px";
-
-        status.style.borderRadius =
-            "10px";
-
-        status.style.background =
-            "#111827";
-
-        status.style.color =
-            "white";
-
-        status.style.fontSize =
-            "12px";
-
-        status.style.fontWeight =
-            "bold";
-
-        status.style.boxShadow =
-            "0 4px 12px rgba(0,0,0,0.2)";
-
-
-        document.body.appendChild(
-            status
-        );
-
-    }
-
-
-    status.textContent =
-        message;
-
-
-    clearTimeout(
-        status._timer
-    );
-
-
-    status._timer =
-        setTimeout(
-
-            () => {
-
-                status.style.opacity =
-                    "0.75";
-
-            },
-
-            3000
-
-        );
-
-}
-
-
-/* =====================================================
    現在の会計
 ===================================================== */
 
 function getCurrentEvent() {
 
     return data.events.find(
-
         event =>
             event.id ===
             data.currentEventId
-
     );
 
 }
@@ -617,59 +667,61 @@ function getCurrentEvent() {
 ===================================================== */
 
 document.addEventListener(
-
     "DOMContentLoaded",
-
     async () => {
 
-        renderEvents();
+        /*
+            まずローカルデータで表示
+        */
 
-        renderGroups();
-
-        renderGroupFilter();
-
-        renderMembers();
-
-        renderFinance();
-
-        updateStats();
-
-        updateOverallFinance();
-
-        calculateCustom();
+        renderAll();
 
 
         /*
-            Firebaseから最新データを取得
+            Firebaseから最新データ取得
         */
 
         await loadFromCloud();
 
 
         /*
-            クラウド読み込み後に
-            画面を再描画
+            クラウド取得後に再描画
         */
 
-        renderEvents();
+        renderAll();
 
-        renderGroups();
 
-        renderGroupFilter();
-
-        renderMembers();
-
-        renderFinance();
-
-        updateStats();
-
-        updateOverallFinance();
-
-        calculateCustom();
+        console.log(
+            "☁️ Circle Accounting 起動完了"
+        );
 
     }
-
 );
+
+
+/* =====================================================
+   全画面再描画
+===================================================== */
+
+function renderAll() {
+
+    renderEvents();
+
+    renderGroups();
+
+    renderGroupFilter();
+
+    renderMembers();
+
+    renderFinance();
+
+    updateStats();
+
+    updateOverallFinance();
+
+    calculateCustom();
+
+}
 
 
 /* =====================================================
@@ -691,7 +743,6 @@ function renderEvents() {
 
 
     data.events.forEach(
-
         event => {
 
             const card =
@@ -702,15 +753,11 @@ function renderEvents() {
 
             card.className =
                 "event-card " +
-
                 (
                     event.id ===
                     data.currentEventId
-
                         ? "active"
-
                         : ""
-
                 );
 
 
@@ -719,17 +766,9 @@ function renderEvents() {
                 data.currentEventId =
                     event.id;
 
-
                 saveData();
 
-
-                renderEvents();
-
-                renderMembers();
-
-                renderFinance();
-
-                updateStats();
+                renderAll();
 
             };
 
@@ -739,10 +778,8 @@ function renderEvents() {
                     "div"
                 );
 
-
             name.className =
                 "event-name";
-
 
             name.textContent =
                 event.name;
@@ -753,14 +790,11 @@ function renderEvents() {
                     "div"
                 );
 
-
             fee.className =
                 "event-fee";
 
-
             fee.textContent =
                 "参加費 ¥" +
-
                 Number(event.fee)
                     .toLocaleString();
 
@@ -770,10 +804,8 @@ function renderEvents() {
                     "button"
                 );
 
-
             deleteButton.className =
                 "delete-event";
-
 
             deleteButton.textContent =
                 "×";
@@ -800,10 +832,11 @@ function renderEvents() {
             );
 
 
-            container.appendChild(card);
+            container.appendChild(
+                card
+            );
 
         }
-
     );
 
 
@@ -837,11 +870,9 @@ function renderEvents() {
 
             currentFee.textContent =
                 "¥" +
-
                 Number(
                     currentEvent.fee
-                )
-                .toLocaleString();
+                ).toLocaleString();
 
         }
 
@@ -880,7 +911,7 @@ function addEvent() {
 
 
     if (
-        isNaN(fee) ||
+        !Number.isFinite(fee) ||
         fee < 0
     ) {
 
@@ -924,14 +955,7 @@ function addEvent() {
 
     saveData();
 
-
-    renderEvents();
-
-    renderMembers();
-
-    renderFinance();
-
-    updateStats();
+    renderAll();
 
 }
 
@@ -943,7 +967,7 @@ function addEvent() {
 function deleteEvent(id) {
 
     if (
-        data.events.length === 1
+        data.events.length <= 1
     ) {
 
         alert(
@@ -957,7 +981,8 @@ function deleteEvent(id) {
 
     const event =
         data.events.find(
-            e => e.id === id
+            e =>
+                e.id === id
         );
 
 
@@ -973,7 +998,8 @@ function deleteEvent(id) {
 
     data.events =
         data.events.filter(
-            e => e.id !== id
+            e =>
+                e.id !== id
         );
 
 
@@ -989,14 +1015,7 @@ function deleteEvent(id) {
 
     saveData();
 
-
-    renderEvents();
-
-    renderMembers();
-
-    renderFinance();
-
-    updateStats();
+    renderAll();
 
 }
 
@@ -1020,14 +1039,12 @@ function renderGroups() {
 
 
     data.groups.forEach(
-
         group => {
 
             const card =
                 document.createElement(
                     "div"
                 );
-
 
             card.className =
                 "group-card";
@@ -1038,10 +1055,8 @@ function renderGroups() {
                     "div"
                 );
 
-
             color.className =
                 "group-color";
-
 
             color.style.background =
                 group.color;
@@ -1052,10 +1067,8 @@ function renderGroups() {
                     "span"
                 );
 
-
             name.className =
                 "group-name";
-
 
             name.textContent =
                 group.name;
@@ -1063,11 +1076,9 @@ function renderGroups() {
 
             const count =
                 data.members.filter(
-
                     member =>
                         member.groupId ===
                         group.id
-
                 ).length;
 
 
@@ -1076,10 +1087,8 @@ function renderGroups() {
                     "span"
                 );
 
-
             countElement.className =
                 "group-count";
-
 
             countElement.textContent =
                 count + "人";
@@ -1090,10 +1099,8 @@ function renderGroups() {
                     "button"
                 );
 
-
             deleteButton.className =
                 "group-delete";
-
 
             deleteButton.textContent =
                 "×";
@@ -1132,10 +1139,11 @@ function renderGroups() {
             );
 
 
-            container.appendChild(card);
+            container.appendChild(
+                card
+            );
 
         }
-
     );
 
 }
@@ -1162,27 +1170,15 @@ function addGroup() {
     const colors = [
 
         "#dbeafe",
-
         "#dcfce7",
-
         "#fef3c7",
-
         "#fce7f3",
-
         "#ede9fe",
-
         "#cffafe",
-
         "#ffedd5",
-
         "#e2e8f0"
 
     ];
-
-
-    const colorIndex =
-        data.groups.length %
-        colors.length;
 
 
     const newGroup = {
@@ -1194,7 +1190,10 @@ function addGroup() {
             name.trim(),
 
         color:
-            colors[colorIndex]
+            colors[
+                data.groups.length %
+                colors.length
+            ]
 
     };
 
@@ -1206,12 +1205,7 @@ function addGroup() {
 
     saveData();
 
-
-    renderGroups();
-
-    renderGroupFilter();
-
-    renderMembers();
+    renderAll();
 
 }
 
@@ -1235,7 +1229,8 @@ function deleteGroup(id) {
 
     const group =
         data.groups.find(
-            g => g.id === id
+            g =>
+                g.id === id
         );
 
 
@@ -1250,7 +1245,6 @@ function deleteGroup(id) {
 
 
     data.members.forEach(
-
         member => {
 
             if (
@@ -1262,27 +1256,19 @@ function deleteGroup(id) {
             }
 
         }
-
     );
 
 
     data.groups =
         data.groups.filter(
-
             group =>
                 group.id !== id
-
         );
 
 
     saveData();
 
-
-    renderGroups();
-
-    renderGroupFilter();
-
-    renderMembers();
+    renderAll();
 
 }
 
@@ -1317,15 +1303,10 @@ function renderGroupFilter() {
 
     allButton.className =
         "filter-btn " +
-
         (
-            selectedGroupFilter ===
-            "all"
-
+            selectedGroupFilter === "all"
                 ? "active"
-
                 : ""
-
         );
 
 
@@ -1337,7 +1318,6 @@ function renderGroupFilter() {
 
         selectedGroupFilter =
             "all";
-
 
         renderGroupFilter();
 
@@ -1352,7 +1332,6 @@ function renderGroupFilter() {
 
 
     data.groups.forEach(
-
         group => {
 
             const button =
@@ -1363,15 +1342,11 @@ function renderGroupFilter() {
 
             button.className =
                 "filter-btn " +
-
                 (
                     selectedGroupFilter ===
                     group.id
-
                         ? "active"
-
                         : ""
-
                 );
 
 
@@ -1383,7 +1358,6 @@ function renderGroupFilter() {
 
                 selectedGroupFilter =
                     group.id;
-
 
                 renderGroupFilter();
 
@@ -1397,7 +1371,6 @@ function renderGroupFilter() {
             );
 
         }
-
     );
 
 }
@@ -1433,24 +1406,20 @@ function renderMembers() {
 
 
     if (
-        selectedGroupFilter !==
-        "all"
+        selectedGroupFilter !== "all"
     ) {
 
         members =
             members.filter(
-
                 member =>
                     member.groupId ===
                     selectedGroupFilter
-
             );
 
     }
 
 
     members.forEach(
-
         member => {
 
             const status =
@@ -1461,11 +1430,9 @@ function renderMembers() {
 
             const group =
                 data.groups.find(
-
                     group =>
                         group.id ===
                         member.groupId
-
                 );
 
 
@@ -1485,7 +1452,6 @@ function renderMembers() {
                     "group-colored"
                 );
 
-
                 card.style.setProperty(
                     "--group-color",
                     group.color
@@ -1494,9 +1460,7 @@ function renderMembers() {
             }
 
 
-            if (
-                status === "paid"
-            ) {
+            if (status === "paid") {
 
                 card.classList.add(
                     "paid"
@@ -1505,9 +1469,7 @@ function renderMembers() {
             }
 
 
-            if (
-                status === "absent"
-            ) {
+            if (status === "absent") {
 
                 card.classList.add(
                     "absent"
@@ -1524,7 +1486,6 @@ function renderMembers() {
                         "BUTTON"
                     ) return;
 
-
                     togglePayment(
                         member.id
                     );
@@ -1539,20 +1500,16 @@ function renderMembers() {
                         "div"
                     );
 
-
                 groupLabel.className =
                     "member-group";
-
 
                 groupLabel.style.setProperty(
                     "--group-color",
                     group.color
                 );
 
-
                 groupLabel.textContent =
                     group.name;
-
 
                 card.appendChild(
                     groupLabel
@@ -1566,14 +1523,11 @@ function renderMembers() {
                     "div"
                 );
 
-
             name.className =
                 "member-name";
 
-
             name.textContent =
                 member.name;
-
 
             card.appendChild(name);
 
@@ -1583,29 +1537,22 @@ function renderMembers() {
                     "div"
                 );
 
-
             statusText.className =
                 "member-status";
 
 
-            if (
-                status === "paid"
-            ) {
+            if (status === "paid") {
 
                 statusText.textContent =
                     "✓ 支払い済み";
 
             }
-
-            else if (
-                status === "absent"
-            ) {
+            else if (status === "absent") {
 
                 statusText.textContent =
                     "— 不参加";
 
             }
-
             else {
 
                 statusText.textContent =
@@ -1624,7 +1571,6 @@ function renderMembers() {
                     "div"
                 );
 
-
             actions.className =
                 "member-actions";
 
@@ -1634,23 +1580,17 @@ function renderMembers() {
                     "button"
                 );
 
-
             editButton.className =
                 "group-btn";
-
 
             editButton.textContent =
                 "名前変更";
 
-
             editButton.onclick =
-                () => {
-
+                () =>
                     renameMember(
                         member.id
                     );
-
-                };
 
 
             const absentButton =
@@ -1658,28 +1598,19 @@ function renderMembers() {
                     "button"
                 );
 
-
             absentButton.className =
                 "absent-btn";
 
-
             absentButton.textContent =
-
                 status === "absent"
-
                     ? "参加に戻す"
-
                     : "不参加";
 
-
             absentButton.onclick =
-                () => {
-
+                () =>
                     toggleAttendance(
                         member.id
                     );
-
-                };
 
 
             const groupButton =
@@ -1687,23 +1618,17 @@ function renderMembers() {
                     "button"
                 );
 
-
             groupButton.className =
                 "group-btn";
-
 
             groupButton.textContent =
                 "グループ";
 
-
             groupButton.onclick =
-                () => {
-
+                () =>
                     changeMemberGroup(
                         member.id
                     );
-
-                };
 
 
             const upButton =
@@ -1711,28 +1636,18 @@ function renderMembers() {
                     "button"
                 );
 
-
             upButton.className =
                 "sort-btn";
-
 
             upButton.textContent =
                 "↑";
 
-
-            upButton.title =
-                "上へ";
-
-
             upButton.onclick =
-                () => {
-
+                () =>
                     moveMember(
                         member.id,
                         -1
                     );
-
-                };
 
 
             const downButton =
@@ -1740,28 +1655,18 @@ function renderMembers() {
                     "button"
                 );
 
-
             downButton.className =
                 "sort-btn";
-
 
             downButton.textContent =
                 "↓";
 
-
-            downButton.title =
-                "下へ";
-
-
             downButton.onclick =
-                () => {
-
+                () =>
                     moveMember(
                         member.id,
                         1
                     );
-
-                };
 
 
             const deleteButton =
@@ -1769,23 +1674,17 @@ function renderMembers() {
                     "button"
                 );
 
-
             deleteButton.className =
                 "delete-member";
-
 
             deleteButton.textContent =
                 "削除";
 
-
             deleteButton.onclick =
-                () => {
-
+                () =>
                     deleteMember(
                         member.id
                     );
-
-                };
 
 
             actions.appendChild(
@@ -1813,13 +1712,16 @@ function renderMembers() {
             );
 
 
-            card.appendChild(actions);
+            card.appendChild(
+                actions
+            );
 
 
-            container.appendChild(card);
+            container.appendChild(
+                card
+            );
 
         }
-
     );
 
 }
@@ -1833,7 +1735,8 @@ function renameMember(memberId) {
 
     const member =
         data.members.find(
-            m => m.id === memberId
+            m =>
+                m.id === memberId
         );
 
 
@@ -1859,10 +1762,7 @@ function renameMember(memberId) {
 
     saveData();
 
-
-    renderGroups();
-
-    renderMembers();
+    renderAll();
 
 }
 
@@ -1878,11 +1778,8 @@ function moveMember(
 
     const index =
         data.members.findIndex(
-
             member =>
-                member.id ===
-                memberId
-
+                member.id === memberId
         );
 
 
@@ -1895,8 +1792,7 @@ function moveMember(
 
     if (
         newIndex < 0 ||
-        newIndex >=
-        data.members.length
+        newIndex >= data.members.length
     ) {
 
         return;
@@ -1904,20 +1800,17 @@ function moveMember(
     }
 
 
-    const temp =
-        data.members[index];
-
-
-    data.members[index] =
-        data.members[newIndex];
-
-
-    data.members[newIndex] =
-        temp;
+    [
+        data.members[index],
+        data.members[newIndex]
+    ] =
+    [
+        data.members[newIndex],
+        data.members[index]
+    ];
 
 
     saveData();
-
 
     renderMembers();
 
@@ -1938,18 +1831,15 @@ function sortMembersByName() {
 
 
     data.members.sort(
-
         (a, b) =>
             a.name.localeCompare(
                 b.name,
                 "ja"
             )
-
     );
 
 
     saveData();
-
 
     renderMembers();
 
@@ -1969,31 +1859,16 @@ function bulkAbsent() {
     if (!event) return;
 
 
-    let targetMembers;
+    const targetMembers =
+        selectedGroupFilter === "all"
 
+            ? [...data.members]
 
-    if (
-        selectedGroupFilter !==
-        "all"
-    ) {
-
-        targetMembers =
-            data.members.filter(
-
+            : data.members.filter(
                 member =>
                     member.groupId ===
                     selectedGroupFilter
-
             );
-
-    }
-
-    else {
-
-        targetMembers =
-            [...data.members];
-
-    }
 
 
     if (
@@ -2010,24 +1885,17 @@ function bulkAbsent() {
 
 
     const targetName =
-
-        selectedGroupFilter ===
-        "all"
+        selectedGroupFilter === "all"
 
             ? "全員"
 
             : (
-
                 data.groups.find(
-
                     group =>
                         group.id ===
                         selectedGroupFilter
-
                 )?.name ||
-
                 "選択グループ"
-
             );
 
 
@@ -2039,7 +1907,6 @@ function bulkAbsent() {
 
 
     targetMembers.forEach(
-
         member => {
 
             event.members[
@@ -2047,12 +1914,10 @@ function bulkAbsent() {
             ] = "absent";
 
         }
-
     );
 
 
     saveData();
-
 
     renderMembers();
 
@@ -2074,31 +1939,16 @@ function bulkPresent() {
     if (!event) return;
 
 
-    let targetMembers;
+    const targetMembers =
+        selectedGroupFilter === "all"
 
+            ? [...data.members]
 
-    if (
-        selectedGroupFilter !==
-        "all"
-    ) {
-
-        targetMembers =
-            data.members.filter(
-
+            : data.members.filter(
                 member =>
                     member.groupId ===
                     selectedGroupFilter
-
             );
-
-    }
-
-    else {
-
-        targetMembers =
-            [...data.members];
-
-    }
 
 
     if (
@@ -2114,7 +1964,6 @@ function bulkPresent() {
 
 
     targetMembers.forEach(
-
         member => {
 
             event.members[
@@ -2122,12 +1971,10 @@ function bulkPresent() {
             ] = "unpaid";
 
         }
-
     );
 
 
     saveData();
-
 
     renderMembers();
 
@@ -2145,8 +1992,7 @@ function changeMemberGroup(memberId) {
     const member =
         data.members.find(
             m =>
-                m.id ===
-                memberId
+                m.id === memberId
         );
 
 
@@ -2154,7 +2000,7 @@ function changeMemberGroup(memberId) {
 
 
     if (
-        data.groups.length === 1
+        data.groups.length <= 1
     ) {
 
         alert(
@@ -2171,14 +2017,12 @@ function changeMemberGroup(memberId) {
 
 
     data.groups.forEach(
-
         (group, index) => {
 
             message +=
                 `${index + 1}. ${group.name}\n`;
 
         }
-
     );
 
 
@@ -2194,7 +2038,7 @@ function changeMemberGroup(memberId) {
 
 
     if (
-        isNaN(index) ||
+        !Number.isInteger(index) ||
         !data.groups[index]
     ) {
 
@@ -2213,10 +2057,7 @@ function changeMemberGroup(memberId) {
 
     saveData();
 
-
-    renderGroups();
-
-    renderMembers();
+    renderAll();
 
 }
 
@@ -2256,20 +2097,18 @@ function togglePayment(memberId) {
     event.members[
         memberId
     ] =
-
         current === "unpaid"
-
             ? "paid"
-
             : "unpaid";
 
 
     saveData();
 
-
     renderMembers();
 
     updateStats();
+
+    renderFinance();
 
 }
 
@@ -2296,20 +2135,18 @@ function toggleAttendance(memberId) {
     event.members[
         memberId
     ] =
-
         current === "absent"
-
             ? "unpaid"
-
             : "absent";
 
 
     saveData();
 
-
     renderMembers();
 
     updateStats();
+
+    renderFinance();
 
 }
 
@@ -2352,26 +2189,25 @@ function addMember() {
 
 
     data.events.forEach(
-
         event => {
+
+            if (!event.members) {
+
+                event.members = {};
+
+            }
 
             event.members[
                 newMember.id
             ] = "unpaid";
 
         }
-
     );
 
 
     saveData();
 
-
-    renderGroups();
-
-    renderMembers();
-
-    updateStats();
+    renderAll();
 
 }
 
@@ -2384,7 +2220,8 @@ function deleteMember(id) {
 
     const member =
         data.members.find(
-            m => m.id === id
+            m =>
+                m.id === id
         );
 
 
@@ -2400,29 +2237,27 @@ function deleteMember(id) {
 
     data.members =
         data.members.filter(
-            m => m.id !== id
+            m =>
+                m.id !== id
         );
 
 
     data.events.forEach(
-
         event => {
 
-            delete event.members[id];
+            if (event.members) {
+
+                delete event.members[id];
+
+            }
 
         }
-
     );
 
 
     saveData();
 
-
-    renderGroups();
-
-    renderMembers();
-
-    updateStats();
+    renderAll();
 
 }
 
@@ -2441,16 +2276,12 @@ function updateStats() {
 
 
     let participants = 0;
-
     let paid = 0;
-
     let unpaid = 0;
-
     let absent = 0;
 
 
     data.members.forEach(
-
         member => {
 
             const status =
@@ -2459,27 +2290,21 @@ function updateStats() {
                 ] || "unpaid";
 
 
-            if (
-                status === "absent"
-            ) {
+            if (status === "absent") {
 
                 absent++;
 
             }
-
             else {
 
                 participants++;
 
 
-                if (
-                    status === "paid"
-                ) {
+                if (status === "paid") {
 
                     paid++;
 
                 }
-
                 else {
 
                     unpaid++;
@@ -2489,7 +2314,6 @@ function updateStats() {
             }
 
         }
-
     );
 
 
@@ -2574,7 +2398,7 @@ function updateStats() {
 
 
 /* =====================================================
-   収入
+   収入追加
 ===================================================== */
 
 function addIncome() {
@@ -2607,7 +2431,7 @@ function addIncome() {
 
 
     if (
-        isNaN(amount) ||
+        !Number.isFinite(amount) ||
         amount <= 0
     ) {
 
@@ -2642,14 +2466,13 @@ function addIncome() {
 
     saveData();
 
-
     renderFinance();
 
 }
 
 
 /* =====================================================
-   支出
+   支出追加
 ===================================================== */
 
 function addExpense() {
@@ -2682,7 +2505,7 @@ function addExpense() {
 
 
     if (
-        isNaN(amount) ||
+        !Number.isFinite(amount) ||
         amount <= 0
     ) {
 
@@ -2717,14 +2540,13 @@ function addExpense() {
 
     saveData();
 
-
     renderFinance();
 
 }
 
 
 /* =====================================================
-   会計帳簿
+   会計表示
 ===================================================== */
 
 function renderFinance() {
@@ -2780,12 +2602,10 @@ function renderFinance() {
     Object.entries(
         event.members || {}
     ).forEach(
-
         ([memberId, status]) => {
 
-            if (
-                status !== "paid"
-            ) return;
+            if (status !== "paid")
+                return;
 
 
             paidCount++;
@@ -2793,11 +2613,9 @@ function renderFinance() {
 
             const member =
                 data.members.find(
-
                     m =>
                         String(m.id) ===
                         String(memberId)
-
                 );
 
 
@@ -2816,29 +2634,83 @@ function renderFinance() {
                     "finance-item";
 
 
-                item.innerHTML = `
+                const left =
+                    document.createElement(
+                        "div"
+                    );
 
-                    <div class="finance-item-left">
 
-                        <span class="finance-item-name">
-                            ${escapeHTML(member.name)}
-                        </span>
+                left.className =
+                    "finance-item-left";
 
-                        <span class="finance-item-date">
-                            参加費
-                        </span>
 
-                    </div>
+                const name =
+                    document.createElement(
+                        "span"
+                    );
 
-                    <div class="finance-item-right">
 
-                        <span class="finance-item-amount income-amount">
-                            + ¥${Number(event.fee).toLocaleString()}
-                        </span>
+                name.className =
+                    "finance-item-name";
 
-                    </div>
 
-                `;
+                name.textContent =
+                    member.name;
+
+
+                const date =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                date.className =
+                    "finance-item-date";
+
+
+                date.textContent =
+                    "参加費";
+
+
+                left.appendChild(name);
+
+                left.appendChild(date);
+
+
+                const right =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                right.className =
+                    "finance-item-right";
+
+
+                const amount =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                amount.className =
+                    "finance-item-amount income-amount";
+
+
+                amount.textContent =
+                    "+ ¥" +
+                    Number(event.fee)
+                        .toLocaleString();
+
+
+                right.appendChild(
+                    amount
+                );
+
+
+                item.appendChild(left);
+
+                item.appendChild(right);
 
 
                 participationList.appendChild(
@@ -2848,7 +2720,6 @@ function renderFinance() {
             }
 
         }
-
     );
 
 
@@ -2863,7 +2734,6 @@ function renderFinance() {
 
 
     event.income.forEach(
-
         item => {
 
             otherIncome +=
@@ -2873,18 +2743,15 @@ function renderFinance() {
             if (incomeList) {
 
                 incomeList.appendChild(
-
                     createFinanceItem(
                         item,
                         "income"
                     )
-
                 );
 
             }
 
         }
-
     );
 
 
@@ -2892,7 +2759,6 @@ function renderFinance() {
 
 
     event.expenses.forEach(
-
         item => {
 
             expenseTotal +=
@@ -2902,18 +2768,15 @@ function renderFinance() {
             if (expenseList) {
 
                 expenseList.appendChild(
-
                     createFinanceItem(
                         item,
                         "expense"
                     )
-
                 );
 
             }
 
         }
-
     );
 
 
@@ -2976,27 +2839,6 @@ function renderFinance() {
 
 
     updateOverallFinance();
-
-}
-
-
-/* =====================================================
-   HTMLエスケープ
-===================================================== */
-
-function escapeHTML(text) {
-
-    const div =
-        document.createElement(
-            "div"
-        );
-
-
-    div.textContent =
-        text;
-
-
-    return div.innerHTML;
 
 }
 
@@ -3081,28 +2923,19 @@ function createFinanceItem(
 
     amount.className =
         "finance-item-amount " +
-
         (
             type === "income"
-
                 ? "income-amount"
-
                 : "expense-amount"
-
         );
 
 
     amount.textContent =
-
         (
             type === "income"
-
                 ? "+ ¥"
-
                 : "- ¥"
-
         ) +
-
         Number(item.amount)
             .toLocaleString();
 
@@ -3165,35 +2998,27 @@ function deleteFinanceItem(
     if (!event) return;
 
 
-    if (
-        type === "income"
-    ) {
+    if (type === "income") {
 
         event.income =
             event.income.filter(
-
                 item =>
                     item.id !== id
-
             );
 
     }
-
     else {
 
         event.expenses =
             event.expenses.filter(
-
                 item =>
                     item.id !== id
-
             );
 
     }
 
 
     saveData();
-
 
     renderFinance();
 
@@ -3246,9 +3071,7 @@ function calculateCustom() {
     let result = 0;
 
 
-    if (
-        people > 0
-    ) {
+    if (people > 0) {
 
         result =
             Math.ceil(
@@ -3290,7 +3113,6 @@ function resetCurrentEvent() {
 
     saveData();
 
-
     renderMembers();
 
     updateStats();
@@ -3313,35 +3135,48 @@ async function resetAllData() {
     ) return;
 
 
-    localStorage.removeItem(
-        "circleAccounting"
-    );
-
-
-    try {
-
-        await setDoc(
-
-            cloudDataRef,
-
-            {
-                data:
-                    structuredClone(
-                        DEFAULT_DATA
-                    ),
-
-                updatedAt:
-                    new Date().toISOString()
-
-            }
-
+    data =
+        structuredClone(
+            DEFAULT_DATA
         );
 
-    }
 
-    catch (error) {
+    saveLocalOnly();
 
-        console.error(error);
+
+    if (
+        firebaseReady &&
+        cloudDataRef
+    ) {
+
+        try {
+
+            await setDoc(
+
+                cloudDataRef,
+
+                {
+                    data:
+                        structuredClone(
+                            DEFAULT_DATA
+                        ),
+
+                    updatedAt:
+                        new Date().toISOString()
+
+                }
+
+            );
+
+        }
+        catch (error) {
+
+            console.error(
+                "Firebaseリセットエラー:",
+                error
+            );
+
+        }
 
     }
 
@@ -3367,14 +3202,11 @@ function exportData() {
 
     const blob =
         new Blob(
-
             [json],
-
             {
                 type:
                     "application/json"
             }
-
         );
 
 
@@ -3390,18 +3222,30 @@ function exportData() {
         );
 
 
-    a.href = url;
+    a.href =
+        url;
 
 
     a.download =
         "CircleAccounting_backup.json";
 
 
+    document.body.appendChild(a);
+
     a.click();
 
+    a.remove();
 
-    URL.revokeObjectURL(
-        url
+
+    setTimeout(
+        () => {
+
+            URL.revokeObjectURL(
+                url
+            );
+
+        },
+        100
     );
 
 }
@@ -3440,7 +3284,9 @@ function importData(event) {
                     !imported.members
                 ) {
 
-                    throw new Error();
+                    throw new Error(
+                        "Invalid backup"
+                    );
 
                 }
 
@@ -3465,13 +3311,7 @@ function importData(event) {
                 );
 
 
-                localStorage.setItem(
-
-                    "circleAccounting",
-
-                    JSON.stringify(data)
-
-                );
+                saveLocalOnly();
 
 
                 await saveToCloud();
@@ -3485,10 +3325,11 @@ function importData(event) {
                 location.reload();
 
             }
+            catch (error) {
 
-            catch(error) {
-
-                console.error(error);
+                console.error(
+                    error
+                );
 
 
                 alert(
@@ -3518,22 +3359,24 @@ function changeFee() {
     if (!event) return;
 
 
-    const newFee =
-        Number(
-
-            prompt(
-
-                "新しい参加費を入力してください",
-
-                event.fee
-
-            )
-
+    const input =
+        prompt(
+            "新しい参加費を入力してください",
+            event.fee
         );
 
 
     if (
-        isNaN(newFee) ||
+        input === null
+    ) return;
+
+
+    const newFee =
+        Number(input);
+
+
+    if (
+        !Number.isFinite(newFee) ||
         newFee < 0
     ) {
 
@@ -3548,9 +3391,7 @@ function changeFee() {
 
     if (
         !confirm(
-
             `参加費を ¥${Number(event.fee).toLocaleString()} から ¥${newFee.toLocaleString()} に変更しますか？`
-
         )
     ) {
 
@@ -3565,14 +3406,7 @@ function changeFee() {
 
     saveData();
 
-
-    renderEvents();
-
-    renderMembers();
-
-    renderFinance();
-
-    updateStats();
+    renderAll();
 
 }
 
@@ -3583,32 +3417,22 @@ function changeFee() {
 
 function updateOverallFinance() {
 
-    let totalParticipationIncome =
-        0;
+    let totalParticipationIncome = 0;
 
+    let totalOtherIncome = 0;
 
-    let totalOtherIncome =
-        0;
-
-
-    let totalExpense =
-        0;
+    let totalExpense = 0;
 
 
     data.events.forEach(
-
         event => {
 
-            let paidCount =
-                0;
+            let paidCount = 0;
 
 
             Object.values(
-
                 event.members || {}
-
             ).forEach(
-
                 status => {
 
                     if (
@@ -3620,7 +3444,6 @@ function updateOverallFinance() {
                     }
 
                 }
-
             );
 
 
@@ -3635,38 +3458,31 @@ function updateOverallFinance() {
             (
                 event.income || []
             ).forEach(
-
                 item => {
 
                     totalOtherIncome +=
-
                         Number(
                             item.amount
                         ) || 0;
 
                 }
-
             );
 
 
             (
                 event.expenses || []
             ).forEach(
-
                 item => {
 
                     totalExpense +=
-
                         Number(
                             item.amount
                         ) || 0;
 
                 }
-
             );
 
         }
-
     );
 
 
@@ -3728,7 +3544,7 @@ function updateOverallFinance() {
 
 
 /* =====================================================
-   HTMLのonclickから呼び出せるようにする
+   HTML onclick対応
 ===================================================== */
 
 window.addEvent =
@@ -3802,6 +3618,5 @@ window.changeFee =
 
 
 console.log(
-    "☁️ Circle Accounting Firebase版 起動"
+    "🚀 Circle Accounting Firebase版 起動"
 );
-```
