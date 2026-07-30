@@ -1,10 +1,12 @@
-/* =========================================================
+/* =====================================================
    Circle Accounting
-   Mobile First / Responsive Design
-========================================================= */
+   Mobile First CSS
+===================================================== */
 
 * {
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 html {
@@ -12,8 +14,6 @@ html {
 }
 
 body {
-    margin: 0;
-    padding: 0;
     font-family:
         -apple-system,
         BlinkMacSystemFont,
@@ -24,13 +24,19 @@ body {
     background: #f3f4f6;
     color: #111827;
 
-    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+
     -webkit-tap-highlight-color: transparent;
 }
 
+
+/* =====================================================
+   共通
+===================================================== */
+
 button,
 input {
-    font-family: inherit;
+    font: inherit;
 }
 
 button {
@@ -41,200 +47,291 @@ button:active {
     transform: scale(0.97);
 }
 
+input {
+    outline: none;
+}
 
-/* =========================================================
+
+/* =====================================================
+   ログイン画面
+===================================================== */
+
+.login-screen {
+    position: fixed;
+    inset: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #111827,
+            #1f2937
+        );
+
+    z-index: 99999;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+
+    background: white;
+
+    border-radius: 24px;
+
+    padding: 36px 24px;
+
+    text-align: center;
+
+    box-shadow:
+        0 20px 60px
+        rgba(0, 0, 0, 0.25);
+}
+
+.login-icon {
+    font-size: 58px;
+    margin-bottom: 10px;
+}
+
+.login-card h1 {
+    font-size: 25px;
+    margin-bottom: 4px;
+}
+
+.login-card > p {
+    color: #6b7280;
+}
+
+.login-description {
+    margin-top: 20px;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+.google-login-btn {
+    width: 100%;
+
+    margin-top: 26px;
+
+    padding: 14px 18px;
+
+    border: 1px solid #d1d5db;
+
+    border-radius: 12px;
+
+    background: white;
+
+    color: #111827;
+
+    font-weight: 700;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+
+    box-shadow:
+        0 2px 6px
+        rgba(0, 0, 0, 0.08);
+}
+
+.google-login-btn span {
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.google-login-btn:hover {
+    background: #f9fafb;
+}
+
+.login-error {
+    margin-top: 15px;
+
+    color: #dc2626;
+
+    font-size: 13px;
+}
+
+.app-hidden {
+    display: none;
+}
+
+
+/* =====================================================
    Header
-========================================================= */
+===================================================== */
 
 header {
-    background: linear-gradient(
-        135deg,
-        #111827,
-        #1f2937
-    );
-
+    background: #111827;
     color: white;
 
-    padding:
-        18px
-        max(16px, calc((100vw - 1200px) / 2));
+    position: sticky;
+    top: 0;
+
+    z-index: 1000;
+
+    box-shadow:
+        0 2px 10px
+        rgba(0, 0, 0, 0.15);
 }
 
 .header-inner {
     max-width: 1200px;
-    margin: 0 auto;
+
+    margin: auto;
+
+    padding:
+        14px
+        16px;
 
     display: flex;
+
     align-items: center;
+
     justify-content: space-between;
 
-    gap: 20px;
+    gap: 12px;
 }
 
 header h1 {
-    margin: 0;
-
-    font-size: 24px;
-    font-weight: 800;
-
-    letter-spacing: -0.5px;
+    font-size: 20px;
+    line-height: 1.2;
 }
 
 header p {
-    margin: 5px 0 0;
+    margin-top: 3px;
 
-    color: #d1d5db;
+    font-size: 11px;
 
-    font-size: 13px;
+    color: #9ca3af;
 }
 
 .header-actions {
     display: flex;
-    gap: 8px;
-    flex-shrink: 0;
+
+    align-items: center;
+
+    gap: 6px;
+
+    flex-wrap: wrap;
+
+    justify-content: flex-end;
 }
 
 .header-btn {
-    border: 1px solid #4b5563;
+    border: 1px solid #374151;
 
-    background: #374151;
+    background: #1f2937;
+
     color: white;
 
-    border-radius: 10px;
+    border-radius: 9px;
 
-    padding: 10px 14px;
+    padding: 7px 10px;
 
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 11px;
 
-    transition: 0.2s;
+    white-space: nowrap;
 }
 
 .header-btn:hover {
-    background: #4b5563;
+    background: #374151;
 }
 
-.import-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    cursor: pointer;
+.user-info {
+    display: none;
 }
 
 
-/* =========================================================
+/* =====================================================
    Main
-========================================================= */
+===================================================== */
 
 main {
-    width: min(1200px, calc(100% - 32px));
+    width: 100%;
 
-    margin: 24px auto 50px;
+    max-width: 1200px;
 
-    display: flex;
-    flex-direction: column;
+    margin: auto;
 
-    gap: 20px;
+    padding:
+        12px;
 }
 
 
-/* =========================================================
+/* =====================================================
    Panel
-========================================================= */
+===================================================== */
 
 .panel {
     background: white;
 
     border-radius: 16px;
 
-    padding: 24px;
+    padding: 18px;
+
+    margin-bottom: 14px;
 
     box-shadow:
-        0 2px 8px rgba(0, 0, 0, 0.05);
-
-    border: 1px solid #e5e7eb;
+        0 2px 8px
+        rgba(0, 0, 0, 0.05);
 }
 
 .section-header {
     display: flex;
 
-    align-items: center;
+    align-items: flex-start;
+
     justify-content: space-between;
 
-    gap: 16px;
+    gap: 12px;
 
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
-.section-header h2,
-.panel > h2 {
-    margin: 0;
-
-    font-size: 20px;
-    font-weight: 800;
+.section-header h2 {
+    font-size: 18px;
 }
 
 .description {
-    margin: 6px 0 0;
-
     color: #6b7280;
 
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 12px;
+
+    margin-top: 3px;
 }
 
-
-/* =========================================================
-   Buttons
-========================================================= */
-
 .primary-btn {
-    border: none;
+    flex-shrink: 0;
 
-    background: #2563eb;
-    color: white;
+    border: none;
 
     border-radius: 10px;
 
-    padding: 11px 16px;
+    background: #2563eb;
 
-    font-size: 14px;
+    color: white;
+
+    padding: 9px 12px;
+
     font-weight: 700;
 
-    white-space: nowrap;
-
-    transition: 0.2s;
+    font-size: 12px;
 }
 
 .primary-btn:hover {
     background: #1d4ed8;
 }
 
-.danger-btn {
-    border: 1px solid #fecaca;
 
-    background: #fef2f2;
-    color: #dc2626;
-
-    border-radius: 10px;
-
-    padding: 11px 16px;
-
-    font-size: 13px;
-    font-weight: 700;
-
-    transition: 0.2s;
-}
-
-.danger-btn:hover {
-    background: #fee2e2;
-}
-
-
-/* =========================================================
+/* =====================================================
    Overall Finance
-========================================================= */
+===================================================== */
 
 .overall-finance {
     display: grid;
@@ -242,64 +339,63 @@ main {
     grid-template-columns:
         repeat(3, 1fr);
 
-    gap: 14px;
-}
-
-.overall-card {
-    padding: 20px;
-
-    border-radius: 14px;
-
-    background: #f9fafb;
-
-    border: 1px solid #e5e7eb;
-
-    display: flex;
-    flex-direction: column;
-
     gap: 8px;
 }
 
-.overall-card span {
-    color: #6b7280;
+.overall-card {
+    padding: 14px 8px;
 
-    font-size: 13px;
-    font-weight: 600;
+    background: #f9fafb;
+
+    border-radius: 12px;
+
+    text-align: center;
+}
+
+.overall-card span {
+    display: block;
+
+    font-size: 11px;
+
+    color: #6b7280;
 }
 
 .overall-card strong {
-    font-size: 25px;
-    font-weight: 800;
+    display: block;
+
+    margin-top: 4px;
+
+    font-size: 17px;
 }
 
 
-/* =========================================================
+/* =====================================================
    Event
-========================================================= */
+===================================================== */
 
 .event-list {
     display: grid;
 
     grid-template-columns:
-        repeat(auto-fill, minmax(220px, 1fr));
+        repeat(auto-fill, minmax(150px, 1fr));
 
-    gap: 12px;
+    gap: 9px;
 }
 
 .event-card {
     position: relative;
 
-    padding: 17px;
-
-    border-radius: 12px;
-
-    background: #f9fafb;
+    padding: 14px;
 
     border: 2px solid #e5e7eb;
 
+    border-radius: 12px;
+
+    background: white;
+
     cursor: pointer;
 
-    transition: 0.2s;
+    transition: 0.15s;
 }
 
 .event-card:hover {
@@ -307,67 +403,60 @@ main {
 }
 
 .event-card.active {
-    background: #eff6ff;
-
     border-color: #2563eb;
+
+    background: #eff6ff;
 }
 
 .event-name {
-    font-weight: 800;
+    font-weight: 700;
 
-    font-size: 16px;
+    font-size: 14px;
 
-    padding-right: 28px;
+    padding-right: 24px;
 }
 
 .event-fee {
-    margin-top: 7px;
+    margin-top: 3px;
+
+    font-size: 12px;
 
     color: #6b7280;
-
-    font-size: 13px;
 }
 
 .delete-event {
     position: absolute;
 
-    top: 8px;
-    right: 8px;
+    top: 7px;
+    right: 7px;
 
-    width: 30px;
-    height: 30px;
+    width: 26px;
+    height: 26px;
 
     border: none;
 
-    background: transparent;
-    color: #9ca3af;
-
     border-radius: 50%;
 
-    font-size: 20px;
-}
-
-.delete-event:hover {
     background: #fee2e2;
+
     color: #dc2626;
+
+    font-weight: 700;
 }
 
 
-/* =========================================================
+/* =====================================================
    Selected Event
-========================================================= */
+===================================================== */
 
 .selected-event {
     display: flex;
 
     align-items: center;
+
     justify-content: space-between;
 
-    gap: 20px;
-
-    padding-bottom: 20px;
-
-    border-bottom: 1px solid #e5e7eb;
+    gap: 15px;
 }
 
 .small-label {
@@ -375,47 +464,45 @@ main {
 
     color: #6b7280;
 
-    font-size: 12px;
-    font-weight: 700;
-
-    margin-bottom: 4px;
+    font-size: 11px;
 }
 
 .selected-event h2 {
-    margin: 0;
+    margin-top: 2px;
 
-    font-size: 24px;
+    font-size: 20px;
 }
 
 .fee-control {
-    display: flex;
+    text-align: right;
 
-    align-items: center;
-
-    gap: 12px;
+    flex-shrink: 0;
 }
 
 .fee-control strong {
-    font-size: 23px;
+    display: block;
+
+    font-size: 19px;
 }
 
 .fee-change-btn {
-    border: 1px solid #d1d5db;
+    margin-top: 4px;
 
-    background: white;
+    border: none;
 
-    border-radius: 9px;
+    background: transparent;
 
-    padding: 9px 12px;
+    color: #2563eb;
 
-    font-size: 12px;
+    font-size: 11px;
+
     font-weight: 700;
 }
 
 
-/* =========================================================
+/* =====================================================
    Stats
-========================================================= */
+===================================================== */
 
 .stats {
     display: grid;
@@ -423,21 +510,17 @@ main {
     grid-template-columns:
         repeat(6, 1fr);
 
-    gap: 10px;
+    gap: 8px;
 
-    margin-top: 18px;
+    margin-top: 16px;
 }
 
 .stat-card {
-    min-width: 0;
-
-    padding: 15px;
-
-    border-radius: 12px;
-
     background: #f9fafb;
 
-    border: 1px solid #e5e7eb;
+    border-radius: 11px;
+
+    padding: 11px 7px;
 
     text-align: center;
 }
@@ -447,54 +530,53 @@ main {
 
     color: #6b7280;
 
-    font-size: 12px;
-    font-weight: 600;
-
-    margin-bottom: 5px;
+    font-size: 10px;
 }
 
 .stat-card strong {
-    font-size: 19px;
-    font-weight: 800;
+    display: block;
+
+    margin-top: 3px;
+
+    font-size: 16px;
 }
 
 .stat-card.money {
-    background: #f0fdf4;
-
-    border-color: #bbf7d0;
+    background: #eff6ff;
 }
 
 
-/* =========================================================
+/* =====================================================
    Finance
-========================================================= */
+===================================================== */
 
 .finance-buttons {
     display: flex;
 
-    gap: 8px;
+    gap: 7px;
 }
 
 .income-btn,
 .expense-btn {
     border: none;
 
-    border-radius: 10px;
+    border-radius: 9px;
 
-    padding: 10px 14px;
+    padding: 9px 11px;
 
-    font-size: 13px;
+    color: white;
+
+    font-size: 11px;
+
     font-weight: 700;
 }
 
 .income-btn {
-    background: #eff6ff;
-    color: #2563eb;
+    background: #059669;
 }
 
 .expense-btn {
-    background: #fef2f2;
-    color: #dc2626;
+    background: #dc2626;
 }
 
 .finance-summary {
@@ -503,63 +585,59 @@ main {
     grid-template-columns:
         repeat(4, 1fr);
 
-    gap: 12px;
+    gap: 8px;
 
-    margin-bottom: 28px;
+    margin-bottom: 22px;
 }
 
 .finance-card {
-    padding: 18px;
+    padding: 13px 9px;
 
-    border-radius: 12px;
+    border-radius: 11px;
 
-    border: 1px solid #e5e7eb;
-
-    background: #f9fafb;
+    text-align: center;
 }
 
 .finance-card span {
     display: block;
 
+    font-size: 10px;
+
     color: #6b7280;
-
-    font-size: 12px;
-    font-weight: 700;
-
-    margin-bottom: 6px;
 }
 
 .finance-card strong {
-    font-size: 22px;
+    display: block;
+
+    margin-top: 4px;
+
+    font-size: 17px;
 }
 
 .income-card {
-    background: #f0fdf4;
-    border-color: #bbf7d0;
+    background: #ecfdf5;
 }
 
 .expense-card {
     background: #fef2f2;
-    border-color: #fecaca;
 }
 
 .balance-card {
     background: #eff6ff;
-    border-color: #bfdbfe;
 }
 
 .ledger-section {
-    margin-top: 26px;
+    margin-top: 20px;
 }
 
 .finance-title {
-    margin: 0 0 5px;
+    font-size: 15px;
 
-    font-size: 16px;
+    margin-bottom: 4px;
 }
 
 .income-title {
-    color: #15803d;
+    color: #059669;
 }
 
 .expense-title {
@@ -569,118 +647,27 @@ main {
 .finance-item {
     display: flex;
 
-    align-items: center;
     justify-content: space-between;
 
-    gap: 12px;
+    align-items: center;
 
-    padding: 13px 0;
+    gap: 10px;
 
-    border-bottom: 1px solid #f0f0f0;
+    padding: 11px 0;
+
+    border-bottom: 1px solid #f3f4f6;
 }
 
 .finance-item-left {
     min-width: 0;
-
-    display: flex;
-    flex-direction: column;
-
-    gap: 3px;
 }
 
 .finance-item-name {
-    font-weight: 700;
+    display: block;
 
-    word-break: break-word;
-}
+    font-size: 13px;
 
-.finance-item-date {
-    color: #9ca3af;
-
-    font-size: 11px;
-}
-
-.finance-item-right {
-    display: flex;
-
-    align-items: center;
-
-    gap: 10px;
-
-    flex-shrink: 0;
-}
-
-.finance-item-amount {
-    font-weight: 800;
-
-    white-space: nowrap;
-}
-
-.income-amount {
-    color: #16a34a;
-}
-
-.expense-amount {
-    color: #dc2626;
-}
-
-.delete-finance {
-    border: none;
-
-    background: #f3f4f6;
-    color: #6b7280;
-
-    width: 30px;
-    height: 30px;
-
-    border-radius: 7px;
-
-    font-size: 17px;
-}
-
-
-/* =========================================================
-   Groups
-========================================================= */
-
-.group-list {
-    display: grid;
-
-    grid-template-columns:
-        repeat(auto-fill, minmax(200px, 1fr));
-
-    gap: 10px;
-}
-
-.group-card {
-    display: flex;
-
-    align-items: center;
-
-    gap: 10px;
-
-    padding: 12px 14px;
-
-    border: 1px solid #e5e7eb;
-
-    border-radius: 10px;
-
-    background: #fafafa;
-}
-
-.group-color {
-    width: 13px;
-    height: 13px;
-
-    border-radius: 50%;
-
-    flex-shrink: 0;
-}
-
-.group-name {
-    flex: 1;
-
-    font-weight: 700;
+    font-weight: 600;
 
     overflow: hidden;
 
@@ -689,10 +676,93 @@ main {
     white-space: nowrap;
 }
 
-.group-count {
+.finance-item-date {
+    display: block;
+
+    font-size: 10px;
+
+    color: #9ca3af;
+}
+
+.finance-item-right {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    flex-shrink: 0;
+}
+
+.finance-item-amount {
+    font-size: 13px;
+
+    font-weight: 700;
+}
+
+.income-amount {
+    color: #059669;
+}
+
+.expense-amount {
+    color: #dc2626;
+}
+
+.delete-finance {
+    width: 25px;
+    height: 25px;
+
+    border: none;
+
+    border-radius: 50%;
+
+    background: #f3f4f6;
+
     color: #6b7280;
+}
+
+
+/* =====================================================
+   Groups
+===================================================== */
+
+.group-list {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 8px;
+}
+
+.group-card {
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    padding: 8px 10px;
+
+    background: #f9fafb;
+
+    border-radius: 9px;
 
     font-size: 12px;
+}
+
+.group-color {
+    width: 12px;
+    height: 12px;
+
+    border-radius: 50%;
+}
+
+.group-name {
+    font-weight: 600;
+}
+
+.group-count {
+    color: #6b7280;
 }
 
 .group-delete {
@@ -700,80 +770,67 @@ main {
 
     background: transparent;
 
-    color: #9ca3af;
-
-    font-size: 18px;
-
-    width: 30px;
-    height: 30px;
-
-    border-radius: 7px;
-}
-
-.group-delete:hover {
     color: #dc2626;
-    background: #fee2e2;
+
+    font-weight: 700;
+
+    margin-left: 3px;
 }
 
 
-/* =========================================================
-   Bulk Actions
-========================================================= */
+/* =====================================================
+   Members
+===================================================== */
 
 .bulk-actions {
     display: flex;
 
-    gap: 8px;
+    gap: 7px;
 
     flex-wrap: wrap;
 
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 }
 
 .bulk-btn {
-    border: 1px solid #d1d5db;
-
-    background: white;
-
-    color: #374151;
+    border: none;
 
     border-radius: 9px;
 
-    padding: 9px 13px;
+    padding: 8px 10px;
 
-    font-size: 12px;
+    font-size: 11px;
+
     font-weight: 700;
 }
 
 .absent-bulk {
-    color: #dc2626;
+    background: #fee2e2;
+    color: #b91c1c;
 }
 
 .present-bulk {
-    color: #16a34a;
+    background: #dcfce7;
+    color: #15803d;
 }
 
 .sort-bulk {
-    color: #2563eb;
+    background: #e5e7eb;
+    color: #374151;
 }
-
-
-/* =========================================================
-   Legend
-========================================================= */
 
 .legend {
     display: flex;
 
-    gap: 16px;
+    gap: 15px;
 
     flex-wrap: wrap;
 
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 
     color: #6b7280;
 
-    font-size: 12px;
+    font-size: 11px;
 }
 
 .legend span {
@@ -794,80 +851,66 @@ main {
 }
 
 .dot.unpaid {
-    background: #fbbf24;
+    background: #f59e0b;
 }
 
 .dot.paid {
-    background: #22c55e;
+    background: #10b981;
 }
 
 .dot.absent {
     background: #9ca3af;
 }
 
-
-/* =========================================================
-   Group Filter
-========================================================= */
-
 .group-filter {
     display: flex;
 
-    gap: 7px;
+    gap: 6px;
 
     overflow-x: auto;
 
-    padding-bottom: 6px;
+    padding-bottom: 8px;
 
-    margin-bottom: 15px;
+    margin-bottom: 8px;
 
     scrollbar-width: thin;
 }
 
 .filter-btn {
+    flex-shrink: 0;
+
     border: 1px solid #d1d5db;
 
     background: white;
 
-    color: #4b5563;
-
     border-radius: 999px;
 
-    padding: 8px 14px;
+    padding: 7px 12px;
 
-    font-size: 12px;
-    font-weight: 700;
-
-    white-space: nowrap;
-
-    flex-shrink: 0;
+    font-size: 11px;
 }
 
 .filter-btn.active {
     background: #111827;
+
     color: white;
 
     border-color: #111827;
 }
 
-
-/* =========================================================
-   Members
-========================================================= */
-
 .member-grid {
     display: grid;
 
     grid-template-columns:
-        repeat(2, 1fr);
+        repeat(auto-fill, minmax(230px, 1fr));
 
-    gap: 10px;
+    gap: 9px;
 }
 
 .member-card {
     position: relative;
 
-    padding: 16px;
+    padding: 13px;
 
     border-radius: 12px;
 
@@ -875,29 +918,27 @@ main {
 
     background: #fffbeb;
 
-    transition: 0.2s;
-
     cursor: pointer;
 
-    overflow: hidden;
+    transition: 0.15s;
 }
 
 .member-card.paid {
-    background: #f0fdf4;
+    border-color: #34d399;
 
-    border-color: #22c55e;
+    background: #ecfdf5;
 }
 
 .member-card.absent {
+    border-color: #d1d5db;
+
     background: #f3f4f6;
 
-    border-color: #9ca3af;
-
-    opacity: 0.8;
+    opacity: 0.75;
 }
 
 .member-card.group-colored {
-    border-left-width: 7px;
+    border-left-width: 6px;
 
     border-left-color:
         var(--group-color);
@@ -906,98 +947,84 @@ main {
 .member-group {
     display: inline-block;
 
-    margin-bottom: 6px;
+    padding: 2px 7px;
 
-    padding: 3px 7px;
+    margin-bottom: 5px;
 
-    border-radius: 5px;
+    border-radius: 999px;
 
     background:
         var(--group-color);
 
-    font-size: 10px;
-
-    font-weight: 800;
-
-    color: #374151;
-}
-
-.member-name {
-    font-size: 17px;
-
-    font-weight: 800;
-
-    word-break: break-word;
-}
-
-.member-status {
-    margin-top: 5px;
-
-    font-size: 12px;
-
-    color: #6b7280;
-}
-
-.member-card.paid .member-status {
-    color: #16a34a;
+    font-size: 9px;
 
     font-weight: 700;
 }
 
-.member-card.absent .member-status {
+.member-name {
+    font-size: 15px;
+
+    font-weight: 800;
+}
+
+.member-status {
+    margin-top: 3px;
+
+    font-size: 11px;
+
     color: #6b7280;
 }
 
 .member-actions {
     display: flex;
 
-    gap: 5px;
+    gap: 4px;
 
     flex-wrap: wrap;
 
-    margin-top: 13px;
+    margin-top: 10px;
 }
 
 .member-actions button {
-    border: 1px solid #d1d5db;
-
-    background: white;
-
-    color: #374151;
+    border: none;
 
     border-radius: 7px;
 
-    min-height: 32px;
+    padding: 6px 8px;
 
-    padding: 5px 8px;
-
-    font-size: 11px;
+    font-size: 10px;
 
     font-weight: 700;
 }
 
-.member-actions .delete-member {
-    color: #dc2626;
+.group-btn {
+    background: #dbeafe;
 
-    border-color: #fecaca;
-
-    background: #fff5f5;
+    color: #1d4ed8;
 }
 
-.member-actions .absent-btn {
-    color: #b45309;
+.absent-btn {
+    background: #fee2e2;
+
+    color: #b91c1c;
 }
 
-.member-actions .sort-btn {
-    width: 32px;
+.sort-btn {
+    background: #e5e7eb;
 
-    padding: 0;
+    color: #374151;
+}
+
+.delete-member {
+    background: #111827;
+
+    color: white;
 }
 
 
-/* =========================================================
+/* =====================================================
    Calculator
-========================================================= */
+===================================================== */
 
 .calculator {
     display: grid;
@@ -1005,333 +1032,285 @@ main {
     grid-template-columns:
         1fr 1fr 1.3fr;
 
-    gap: 14px;
+    gap: 10px;
 
     align-items: end;
 }
 
-.input-group {
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 6px;
-}
-
 .input-group label {
-    font-size: 12px;
+    display: block;
 
-    font-weight: 700;
+    font-size: 11px;
 
-    color: #4b5563;
+    color: #6b7280;
+
+    margin-bottom: 4px;
 }
 
 .input-group input {
     width: 100%;
 
+    padding: 10px;
+
     border: 1px solid #d1d5db;
 
     border-radius: 9px;
 
-    padding: 12px;
-
-    font-size: 16px;
-
-    outline: none;
-
-    background: white;
+    font-size: 14px;
 }
 
 .input-group input:focus {
     border-color: #2563eb;
 
     box-shadow:
-        0 0 0 3px
-        rgba(37, 99, 235, 0.1);
+        0 0 0 2px
+        rgba(37, 99, 235, 0.12);
 }
 
 .calc-result {
-    min-height: 48px;
-
-    display: flex;
-
-    align-items: center;
-    justify-content: space-between;
-
-    gap: 12px;
-
-    padding: 10px 15px;
-
-    border-radius: 10px;
+    padding: 10px 14px;
 
     background: #eff6ff;
 
-    border: 1px solid #bfdbfe;
+    border-radius: 9px;
+
+    text-align: center;
 }
 
 .calc-result span {
-    color: #6b7280;
+    display: block;
 
-    font-size: 12px;
+    font-size: 11px;
+
+    color: #6b7280;
 }
 
 .calc-result strong {
+    display: block;
+
+    font-size: 21px;
+
     color: #2563eb;
-
-    font-size: 22px;
 }
 
 
-/* =========================================================
+/* =====================================================
    Settings
-========================================================= */
-
-.settings-panel {
-    margin-bottom: 0;
-}
+===================================================== */
 
 .settings-buttons {
     display: flex;
 
-    gap: 10px;
+    gap: 8px;
+
+    margin-top: 14px;
 
     flex-wrap: wrap;
+}
 
-    margin-top: 18px;
+.danger-btn {
+    border: none;
+
+    border-radius: 9px;
+
+    padding: 9px 12px;
+
+    background: #fee2e2;
+
+    color: #b91c1c;
+
+    font-size: 11px;
+
+    font-weight: 700;
 }
 
 
-/* =========================================================
+/* =====================================================
    Footer
-========================================================= */
+===================================================== */
 
 footer {
     text-align: center;
 
-    padding: 25px 16px 40px;
+    padding: 20px 12px 35px;
 
-    color: #9ca3af;
+    color: #6b7280;
 
-    font-size: 12px;
+    font-size: 11px;
 }
 
 footer p {
-    margin: 0 0 4px;
+    font-weight: 700;
 
-    font-weight: 800;
-
-    color: #6b7280;
+    margin-bottom: 3px;
 }
 
 
-/* =========================================================
+/* =====================================================
+   Cloud Status
+===================================================== */
+
+#cloudStatus {
+    max-width: calc(100vw - 30px);
+
+    word-break: break-word;
+}
+
+
+/* =====================================================
    Tablet
-========================================================= */
+===================================================== */
 
-@media (max-width: 900px) {
+@media (min-width: 600px) {
 
-    .stats {
-        grid-template-columns:
-            repeat(3, 1fr);
+    main {
+        padding: 18px;
     }
 
-    .finance-summary {
-        grid-template-columns:
-            repeat(2, 1fr);
-    }
-
-    .overall-finance {
-        grid-template-columns:
-            repeat(3, 1fr);
-    }
-
-}
-
-
-/* =========================================================
-   Smartphone
-========================================================= */
-
-@media (max-width: 640px) {
-
-    body {
-        background: #f3f4f6;
-    }
-
-
-    /* Header */
-
-    header {
-        padding:
-            15px
-            14px;
-    }
-
-    .header-inner {
-        align-items: flex-start;
-
-        flex-direction: column;
-
-        gap: 13px;
+    .panel {
+        padding: 22px;
     }
 
     header h1 {
-        font-size: 21px;
+        font-size: 23px;
+    }
+
+    .user-info {
+        display: block;
+
+        max-width: 180px;
+
+        overflow: hidden;
+
+        text-overflow: ellipsis;
+
+        white-space: nowrap;
+
+        color: #d1d5db;
+
+        font-size: 11px;
+    }
+
+}
+
+
+/* =====================================================
+   Desktop
+===================================================== */
+
+@media (min-width: 900px) {
+
+    main {
+        padding:
+            25px
+            20px;
+    }
+
+    .panel {
+        border-radius: 18px;
+
+        padding: 25px;
+
+        margin-bottom: 18px;
+    }
+
+    .header-inner {
+        padding:
+            17px
+            20px;
+    }
+
+}
+
+
+/* =====================================================
+   Mobile
+===================================================== */
+
+@media (max-width: 599px) {
+
+    .header-inner {
+        align-items: flex-start;
+    }
+
+    header h1 {
+        font-size: 16px;
     }
 
     header p {
-        font-size: 12px;
+        font-size: 9px;
     }
 
     .header-actions {
-        width: 100%;
+        max-width: 155px;
     }
 
     .header-btn {
-        flex: 1;
+        padding: 6px 7px;
 
-        min-height: 42px;
-
-        font-size: 12px;
+        font-size: 9px;
     }
-
-
-    /* Main */
 
     main {
-        width: calc(100% - 20px);
-
-        margin:
-            10px auto
-            30px;
-
-        gap: 12px;
+        padding: 8px;
     }
 
-
-    /* Panel */
-
     .panel {
-        padding: 17px 14px;
+        padding: 14px;
 
-        border-radius: 14px;
+        border-radius: 13px;
+
+        margin-bottom: 9px;
     }
 
     .section-header {
-        align-items: flex-start;
+        align-items: stretch;
 
         flex-direction: column;
-
-        gap: 12px;
-
-        margin-bottom: 15px;
-    }
-
-    .section-header h2,
-    .panel > h2 {
-        font-size: 18px;
-    }
-
-    .description {
-        font-size: 12px;
     }
 
     .section-header .primary-btn {
         width: 100%;
     }
 
-
-    /* Overall */
-
     .overall-finance {
-        grid-template-columns: 1fr;
-
-        gap: 8px;
+        gap: 5px;
     }
 
     .overall-card {
-        padding: 15px;
+        padding: 10px 4px;
+    }
 
-        flex-direction: row;
-
-        align-items: center;
-        justify-content: space-between;
+    .overall-card span {
+        font-size: 9px;
     }
 
     .overall-card strong {
-        font-size: 21px;
+        font-size: 13px;
     }
-
-
-    /* Events */
-
-    .event-list {
-        grid-template-columns: 1fr;
-    }
-
-    .event-card {
-        min-height: 72px;
-
-        display: flex;
-
-        flex-direction: column;
-
-        justify-content: center;
-    }
-
-
-    /* Selected Event */
 
     .selected-event {
         align-items: flex-start;
 
         flex-direction: column;
-
-        gap: 15px;
-    }
-
-    .selected-event h2 {
-        font-size: 21px;
     }
 
     .fee-control {
         width: 100%;
 
-        flex-wrap: wrap;
+        text-align: left;
     }
 
     .fee-control strong {
-        font-size: 21px;
+        display: inline-block;
+
+        margin-right: 8px;
     }
-
-    .fee-change-btn {
-        margin-left: auto;
-
-        min-height: 40px;
-    }
-
-
-    /* Stats */
 
     .stats {
         grid-template-columns:
             repeat(2, 1fr);
-
-        gap: 8px;
-
-        margin-top: 14px;
     }
-
-    .stat-card {
-        padding: 13px 8px;
-    }
-
-    .stat-card strong {
-        font-size: 17px;
-    }
-
-
-    /* Finance */
 
     .finance-buttons {
         width: 100%;
@@ -1341,232 +1320,49 @@ footer p {
     .expense-btn {
         flex: 1;
 
-        min-height: 43px;
+        padding: 10px 5px;
     }
 
     .finance-summary {
         grid-template-columns:
             repeat(2, 1fr);
-
-        gap: 8px;
-
-        margin-bottom: 20px;
     }
-
-    .finance-card {
-        padding: 14px 12px;
-    }
-
-    .finance-card strong {
-        font-size: 19px;
-    }
-
-    .finance-item {
-        padding: 12px 0;
-    }
-
-    .finance-item-amount {
-        font-size: 13px;
-    }
-
-
-    /* Groups */
-
-    .group-list {
-        grid-template-columns: 1fr;
-    }
-
-    .group-card {
-        min-height: 48px;
-    }
-
-
-    /* Bulk */
-
-    .bulk-actions {
-        display: grid;
-
-        grid-template-columns:
-            1fr 1fr;
-    }
-
-    .bulk-btn {
-        min-height: 42px;
-    }
-
-    .sort-bulk {
-        grid-column: 1 / -1;
-    }
-
-
-    /* Group Filter */
-
-    .group-filter {
-        margin-left: -2px;
-        margin-right: -2px;
-
-        padding-left: 2px;
-        padding-right: 2px;
-    }
-
-    .filter-btn {
-        min-height: 40px;
-
-        padding:
-            8px 15px;
-    }
-
-
-    /* Members */
 
     .member-grid {
         grid-template-columns: 1fr;
-
-        gap: 9px;
     }
-
-    .member-card {
-        padding: 15px;
-    }
-
-    .member-name {
-        font-size: 17px;
-    }
-
-    .member-actions {
-        gap: 6px;
-    }
-
-    .member-actions button {
-        min-height: 38px;
-
-        padding:
-            6px 10px;
-
-        font-size: 11px;
-    }
-
-    .member-actions .sort-btn {
-        width: 38px;
-    }
-
-
-    /* Calculator */
 
     .calculator {
         grid-template-columns: 1fr;
-
-        gap: 12px;
     }
 
-    .input-group input {
-        min-height: 46px;
-
-        font-size: 16px;
+    .event-list {
+        grid-template-columns: 1fr 1fr;
     }
 
-    .calc-result {
-        min-height: 60px;
+    .group-list {
+        gap: 5px;
     }
 
-
-    /* Settings */
-
-    .settings-buttons {
-        flex-direction: column;
-    }
-
-    .settings-buttons .danger-btn {
+    .group-card {
         width: 100%;
-
-        min-height: 44px;
-    }
-
-
-    /* Footer */
-
-    footer {
-        padding-bottom: 30px;
     }
 
 }
 
 
-/* =========================================================
-   Very Small Smartphone
-========================================================= */
-
-@media (max-width: 380px) {
-
-    main {
-        width: calc(100% - 14px);
-    }
-
-    .panel {
-        padding:
-            14px 11px;
-    }
-
-    header {
-        padding:
-            13px 10px;
-    }
-
-    header h1 {
-        font-size: 19px;
-    }
-
-    .stats {
-        grid-template-columns:
-            repeat(2, 1fr);
-    }
-
-    .finance-summary {
-        grid-template-columns: 1fr;
-    }
-
-    .member-actions button {
-        padding:
-            5px 8px;
-
-        font-size: 10px;
-    }
-
-}
-
-
-/* =========================================================
-   Touch / Mobile improvements
-========================================================= */
+/* =====================================================
+   Touch devices
+===================================================== */
 
 @media (hover: none) {
 
-    .event-card:hover {
-        border-color: #e5e7eb;
+    button {
+        min-height: 38px;
     }
 
-    .primary-btn,
-    .header-btn,
-    .bulk-btn,
-    .filter-btn,
-    .member-actions button,
-    .fee-change-btn {
-        touch-action: manipulation;
-    }
-
-}
-
-
-/* =========================================================
-   Prevent iOS input zoom
-========================================================= */
-
-@media (max-width: 640px) {
-
-    input,
-    select,
-    textarea {
-        font-size: 16px;
+    .member-card {
+        user-select: none;
     }
 
 }

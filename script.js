@@ -1,9 +1,7 @@
 /* =====================================================
    Circle Accounting
-   Firebase Firestore + Firebase Authentication
-   Google Login
-   LocalStorage
-   Mobile / GitHub Pages対応
+   Firebase Authentication + Firestore + LocalStorage
+   Mobile / GitHub Pages対応 完成版
 ===================================================== */
 
 import {
@@ -19,8 +17,8 @@ import {
 
 import {
     getAuth,
-    GoogleAuthProvider,
-    signInWithPopup,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
     signOut,
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
@@ -80,19 +78,7 @@ catch (error) {
 
 
 /* =====================================================
-   Google Authentication
-===================================================== */
-
-const googleProvider =
-    new GoogleAuthProvider();
-
-googleProvider.setCustomParameters({
-    prompt: "select_account"
-});
-
-
-/* =====================================================
-   データ
+   初期グループ
 ===================================================== */
 
 const DEFAULT_GROUPS = [
@@ -105,6 +91,10 @@ const DEFAULT_GROUPS = [
 
 ];
 
+
+/* =====================================================
+   初期データ
+===================================================== */
 
 const DEFAULT_DATA = {
 
@@ -169,37 +159,67 @@ const DEFAULT_DATA = {
 };
 
 
+/* =====================================================
+   データ本体
+===================================================== */
+
 let data =
     loadLocalData();
 
 
 /* =====================================================
-   LocalStorage
+   LocalStorageキー
 ===================================================== */
 
-function loadLocalData() {
+function getLocalStorageKey() {
 
-    const saved =
-        localStorage.getItem(
-            "circleAccounting"
-        );
+    if (currentUser) {
 
-    if (!saved) {
-
-        return structuredClone(
-            DEFAULT_DATA
+        return (
+            "circleAccounting_" +
+            currentUser.uid
         );
 
     }
 
+    return "circleAccounting_guest";
+
+}
+
+
+/* =====================================================
+   LocalStorage読み込み
+===================================================== */
+
+function loadLocalData() {
+
     try {
 
-        const parsed =
-            JSON.parse(saved);
+        const possibleKeys = [
 
-        normalizeData(parsed);
+            "circleAccounting",
 
-        return parsed;
+            "circleAccounting_guest"
+
+        ];
+
+        for (
+            const key of possibleKeys
+        ) {
+
+            const saved =
+                localStorage.getItem(key);
+
+            if (!saved) continue;
+
+            const parsed =
+                JSON.parse(saved);
+
+            normalizeData(parsed);
+
+            return parsed;
+
+        }
 
     }
     catch (error) {
@@ -209,33 +229,12 @@ function loadLocalData() {
             error
         );
 
-        return structuredClone(
-            DEFAULT_DATA
-        );
-
     }
 
-}
 
-
-function saveLocalOnly() {
-
-    try {
-
-        localStorage.setItem(
-            "circleAccounting",
-            JSON.stringify(data)
-        );
-
-    }
-    catch (error) {
-
-        console.error(
-            "LocalStorage保存エラー:",
-            error
-        );
-
-    }
+    return structuredClone(
+        DEFAULT_DATA
+    );
 
 }
 
@@ -256,7 +255,9 @@ function normalizeData(target) {
     }
 
 
-    if (!Array.isArray(target.groups)) {
+    if (
+        !Array.isArray(target.groups)
+    ) {
 
         target.groups =
             structuredClone(
@@ -266,14 +267,18 @@ function normalizeData(target) {
     }
 
 
-    if (!Array.isArray(target.members)) {
+    if (
+        !Array.isArray(target.members)
+    ) {
 
         target.members = [];
 
     }
 
 
-    if (!Array.isArray(target.events)) {
+    if (
+        !Array.isArray(target.events)
+    ) {
 
         target.events = [];
 
@@ -302,21 +307,20 @@ function normalizeData(target) {
 
             }
 
-            if (!event.income) {
+            if (!Array.isArray(event.income)) {
 
                 event.income = [];
 
             }
 
-            if (!event.expenses) {
+            if (!Array.isArray(event.expenses)) {
 
                 event.expenses = [];
 
             }
 
             if (
-                typeof event.fee !==
-                "number"
+                typeof event.fee !== "number"
             ) {
 
                 event.fee =
@@ -346,14 +350,40 @@ function normalizeData(target) {
 
 
 /* =====================================================
-   Firestore
-   users/{uid}/circleAccounting/main
+   LocalStorage保存
+===================================================== */
+
+function saveLocalOnly() {
+
+    try {
+
+        localStorage.setItem(
+            getLocalStorageKey(),
+            JSON.stringify(data)
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            "LocalStorage保存エラー:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   Firestore参照
 ===================================================== */
 
 function getCloudDataRef() {
 
     if (
         !firebaseReady ||
+        !db ||
         !currentUser
     ) {
 
@@ -366,11 +396,19 @@ function getCloudDataRef() {
         db,
         "users",
         currentUser.uid,
-        "circleAccounting",
-        "main"
+        "accounting",
+        "data"
     );
 
 }
+
+
+/* =====================================================
+   Firebase状態
+===================================================== */
+
+let cloudLoading = false;
+let cloudSaving = false;
 
 
 /* =====================================================
@@ -395,26 +433,41 @@ function showCloudStatus(message) {
         status.id =
             "cloudStatus";
 
+        status.style.position =
+            "fixed";
 
-        Object.assign(
-            status.style,
-            {
-                position: "fixed",
-                right: "15px",
-                bottom: "15px",
-                zIndex: "99999",
-                padding: "9px 13px",
-                borderRadius: "10px",
-                background: "#111827",
-                color: "white",
-                fontSize: "12px",
-                fontWeight: "bold",
-                boxShadow:
-                    "0 4px 12px rgba(0,0,0,0.2)",
-                transition: "opacity .3s"
-            }
-        );
+        status.style.right =
+            "15px";
 
+        status.style.bottom =
+            "15px";
+
+        status.style.zIndex =
+            "99999";
+
+        status.style.padding =
+            "9px 13px";
+
+        status.style.borderRadius =
+            "10px";
+
+        status.style.background =
+            "#111827";
+
+        status.style.color =
+            "white";
+
+        status.style.fontSize =
+            "12px";
+
+        status.style.fontWeight =
+            "bold";
+
+        status.style.boxShadow =
+            "0 4px 12px rgba(0,0,0,0.2)";
+
+        status.style.transition =
+            "opacity .3s";
 
         document.body.appendChild(
             status
@@ -450,63 +503,358 @@ function showCloudStatus(message) {
 
 
 /* =====================================================
-   Authentication UI
+   ログイン画面
 ===================================================== */
 
-function renderAuthUI() {
+function createLoginScreen() {
+
+    let overlay =
+        document.getElementById(
+            "loginOverlay"
+        );
+
+
+    if (overlay) {
+
+        return overlay;
+
+    }
+
+
+    overlay =
+        document.createElement(
+            "div"
+        );
+
+
+    overlay.id =
+        "loginOverlay";
+
+
+    overlay.innerHTML = `
+
+        <div class="login-box">
+
+            <div class="login-logo">
+                ⚽
+            </div>
+
+            <h1>
+                Circle Accounting
+            </h1>
+
+            <p class="login-subtitle">
+                サークル会計管理システム
+            </p>
+
+
+            <div
+                id="loginMessage"
+                class="login-message">
+            </div>
+
+
+            <input
+                type="email"
+                id="loginEmail"
+                placeholder="メールアドレス"
+                autocomplete="email"
+            >
+
+
+            <input
+                type="password"
+                id="loginPassword"
+                placeholder="パスワード"
+                autocomplete="current-password"
+            >
+
+
+            <button
+                id="loginButton"
+                class="login-primary">
+                ログイン
+            </button>
+
+
+            <button
+                id="registerButton"
+                class="login-secondary">
+                新規アカウント登録
+            </button>
+
+
+            <div
+                id="loginLoading"
+                class="login-loading">
+                処理中...
+            </div>
+
+        </div>
+
+    `;
+
+
+    const style =
+        document.createElement(
+            "style"
+        );
+
+
+    style.textContent = `
+
+        #loginOverlay {
+
+            position: fixed;
+            inset: 0;
+            z-index: 100000;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 20px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #eff6ff,
+                    #f8fafc
+                );
+
+            box-sizing: border-box;
+
+        }
+
+
+        .login-box {
+
+            width: 100%;
+            max-width: 420px;
+
+            padding: 32px 24px;
+
+            background: white;
+
+            border-radius: 24px;
+
+            box-shadow:
+                0 20px 60px
+                rgba(0,0,0,0.12);
+
+            text-align: center;
+
+            box-sizing: border-box;
+
+        }
+
+
+        .login-logo {
+
+            font-size: 48px;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .login-box h1 {
+
+            margin: 0;
+
+            font-size: 25px;
+
+            color: #111827;
+
+        }
+
+
+        .login-subtitle {
+
+            margin:
+                8px 0 24px;
+
+            color: #6b7280;
+
+            font-size: 14px;
+
+        }
+
+
+        .login-box input {
+
+            width: 100%;
+
+            box-sizing: border-box;
+
+            padding: 14px 15px;
+
+            margin-bottom: 12px;
+
+            border:
+                1px solid #d1d5db;
+
+            border-radius: 12px;
+
+            font-size: 16px;
+
+            outline: none;
+
+        }
+
+
+        .login-box input:focus {
+
+            border-color: #2563eb;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(37,99,235,0.12);
+
+        }
+
+
+        .login-primary,
+        .login-secondary {
+
+            width: 100%;
+
+            border: none;
+
+            border-radius: 12px;
+
+            padding: 14px;
+
+            font-size: 16px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            margin-top: 4px;
+
+        }
+
+
+        .login-primary {
+
+            background: #2563eb;
+
+            color: white;
+
+        }
+
+
+        .login-secondary {
+
+            background: #eff6ff;
+
+            color: #2563eb;
+
+            margin-top: 10px;
+
+        }
+
+
+        .login-message {
+
+            min-height: 20px;
+
+            margin-bottom: 10px;
+
+            color: #dc2626;
+
+            font-size: 13px;
+
+        }
+
+
+        .login-loading {
+
+            display: none;
+
+            margin-top: 15px;
+
+            color: #6b7280;
+
+            font-size: 13px;
+
+        }
+
+
+        @media (max-width: 480px) {
+
+            #loginOverlay {
+
+                padding: 14px;
+
+            }
+
+            .login-box {
+
+                padding:
+                    28px 18px;
+
+                border-radius: 20px;
+
+            }
+
+        }
+
+    `;
+
+
+    document.head.appendChild(
+        style
+    );
+
+
+    document.body.appendChild(
+        overlay
+    );
+
 
     const loginButton =
         document.getElementById(
             "loginButton"
         );
 
-    const userInfo =
-        document.getElementById(
-            "userInfo"
-        );
 
-    const userName =
+    const registerButton =
         document.getElementById(
-            "userName"
+            "registerButton"
         );
 
 
-    if (
-        !loginButton ||
-        !userInfo
-    ) {
-
-        return;
-
-    }
+    loginButton.onclick =
+        loginUser;
 
 
-    if (currentUser) {
-
-        loginButton.style.display =
-            "none";
-
-        userInfo.style.display =
-            "flex";
+    registerButton.onclick =
+        registerUser;
 
 
-        if (userName) {
+    return overlay;
 
-            userName.textContent =
-                currentUser.displayName ||
-                currentUser.email ||
-                "ログイン中";
+}
 
-        }
 
-    }
-    else {
+/* =====================================================
+   ログインメッセージ
+===================================================== */
 
-        loginButton.style.display =
-            "inline-flex";
+function showLoginMessage(message) {
 
-        userInfo.style.display =
-            "none";
+    const element =
+        document.getElementById(
+            "loginMessage"
+        );
+
+
+    if (element) {
+
+        element.textContent =
+            message;
 
     }
 
@@ -514,15 +862,15 @@ function renderAuthUI() {
 
 
 /* =====================================================
-   Googleログイン
+   ログイン処理
 ===================================================== */
 
-async function loginWithGoogle() {
+async function loginUser() {
 
     if (!auth) {
 
-        alert(
-            "Firebase Authenticationを利用できません。"
+        showLoginMessage(
+            "Firebaseに接続できません"
         );
 
         return;
@@ -530,79 +878,447 @@ async function loginWithGoogle() {
     }
 
 
+    const email =
+        document.getElementById(
+            "loginEmail"
+        )?.value.trim();
+
+
+    const password =
+        document.getElementById(
+            "loginPassword"
+        )?.value;
+
+
+    if (!email || !password) {
+
+        showLoginMessage(
+            "メールアドレスとパスワードを入力してください"
+        );
+
+        return;
+
+    }
+
+
+    setLoginLoading(true);
+
+
     try {
 
-        showCloudStatus(
-            "🔐 Googleログイン中..."
+        await signInWithEmailAndPassword(
+            auth,
+            email,
+            password
         );
 
 
-        const result =
-            await signInWithPopup(
-                auth,
-                googleProvider
-            );
-
-
-        currentUser =
-            result.user;
-
-
-        console.log(
-            "Googleログイン成功:",
-            currentUser.email
-        );
-
-
-        renderAuthUI();
-
-        showCloudStatus(
-            "✅ ログインしました"
-        );
-
-        await loadFromCloud();
-
-        renderAll();
+        showLoginMessage("");
 
     }
     catch (error) {
 
         console.error(
-            "Googleログインエラー:",
+            "ログインエラー:",
             error
         );
 
 
-        if (
-            error.code ===
-            "auth/popup-closed-by-user"
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            error.code ===
-            "auth/popup-blocked"
-        ) {
-
-            alert(
-                "ポップアップがブロックされています。ブラウザのポップアップを許可してください。"
-            );
-
-            return;
-
-        }
-
-
-        alert(
-            "Googleログインに失敗しました。\n\n" +
-            error.message
+        showLoginMessage(
+            getAuthErrorMessage(
+                error
+            )
         );
 
     }
+    finally {
+
+        setLoginLoading(false);
+
+    }
+
+}
+
+
+/* =====================================================
+   新規登録
+===================================================== */
+
+async function registerUser() {
+
+    if (!auth) {
+
+        showLoginMessage(
+            "Firebaseに接続できません"
+        );
+
+        return;
+
+    }
+
+
+    const email =
+        document.getElementById(
+            "loginEmail"
+        )?.value.trim();
+
+
+    const password =
+        document.getElementById(
+            "loginPassword"
+        )?.value;
+
+
+    if (!email || !password) {
+
+        showLoginMessage(
+            "メールアドレスとパスワードを入力してください"
+        );
+
+        return;
+
+    }
+
+
+    if (password.length < 6) {
+
+        showLoginMessage(
+            "パスワードは6文字以上にしてください"
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !confirm(
+            "このメールアドレスでアカウントを作成しますか？"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    setLoginLoading(true);
+
+
+    try {
+
+        await createUserWithEmailAndPassword(
+            auth,
+            email,
+            password
+        );
+
+
+        showLoginMessage(
+            ""
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            "新規登録エラー:",
+            error
+        );
+
+
+        showLoginMessage(
+            getAuthErrorMessage(
+                error
+            )
+        );
+
+    }
+    finally {
+
+        setLoginLoading(false);
+
+    }
+
+}
+
+
+/* =====================================================
+   Firebaseエラー日本語化
+===================================================== */
+
+function getAuthErrorMessage(error) {
+
+    const code =
+        error?.code || "";
+
+
+    switch (code) {
+
+        case "auth/invalid-email":
+
+            return "メールアドレスの形式が正しくありません。";
+
+
+        case "auth/user-not-found":
+
+            return "このアカウントは存在しません。";
+
+
+        case "auth/wrong-password":
+
+            return "パスワードが間違っています。";
+
+
+        case "auth/invalid-credential":
+
+            return "メールアドレスまたはパスワードが間違っています。";
+
+
+        case "auth/email-already-in-use":
+
+            return "このメールアドレスはすでに登録されています。";
+
+
+        case "auth/weak-password":
+
+            return "パスワードは6文字以上にしてください。";
+
+
+        case "auth/too-many-requests":
+
+            return "試行回数が多すぎます。しばらく待ってください。";
+
+
+        case "auth/network-request-failed":
+
+            return "ネットワーク接続を確認してください。";
+
+
+        default:
+
+            return (
+                "認証エラーが発生しました。"
+            );
+
+    }
+
+}
+
+
+/* =====================================================
+   ログイン処理中表示
+===================================================== */
+
+function setLoginLoading(
+    loading
+) {
+
+    const loadingElement =
+        document.getElementById(
+            "loginLoading"
+        );
+
+
+    const loginButton =
+        document.getElementById(
+            "loginButton"
+        );
+
+
+    const registerButton =
+        document.getElementById(
+            "registerButton"
+        );
+
+
+    if (loadingElement) {
+
+        loadingElement.style.display =
+            loading
+                ? "block"
+                : "none";
+
+    }
+
+
+    if (loginButton) {
+
+        loginButton.disabled =
+            loading;
+
+    }
+
+
+    if (registerButton) {
+
+        registerButton.disabled =
+            loading;
+
+    }
+
+}
+
+
+/* =====================================================
+   ログアウトボタン
+===================================================== */
+
+function createLogoutButton() {
+
+    if (!currentUser) {
+
+        return;
+
+    }
+
+
+    let button =
+        document.getElementById(
+            "logoutButton"
+        );
+
+
+    if (button) {
+
+        updateUserDisplay();
+
+        return;
+
+    }
+
+
+    button =
+        document.createElement(
+            "button"
+        );
+
+
+    button.id =
+        "logoutButton";
+
+
+    button.textContent =
+        "🚪 ログアウト";
+
+
+    button.style.position =
+        "fixed";
+
+    button.style.top =
+        "15px";
+
+    button.style.right =
+        "15px";
+
+    button.style.zIndex =
+        "9999";
+
+    button.style.padding =
+        "9px 13px";
+
+    button.style.border =
+        "none";
+
+    button.style.borderRadius =
+        "10px";
+
+    button.style.background =
+        "#111827";
+
+    button.style.color =
+        "white";
+
+    button.style.fontWeight =
+        "bold";
+
+    button.style.fontSize =
+        "12px";
+
+    button.style.cursor =
+        "pointer";
+
+
+    button.onclick =
+        logoutUser;
+
+
+    document.body.appendChild(
+        button
+    );
+
+
+    updateUserDisplay();
+
+}
+
+
+/* =====================================================
+   ユーザー表示
+===================================================== */
+
+function updateUserDisplay() {
+
+    if (!currentUser) {
+
+        return;
+
+    }
+
+
+    let element =
+        document.getElementById(
+            "userAccountDisplay"
+        );
+
+
+    if (!element) {
+
+        element =
+            document.createElement(
+                "div"
+            );
+
+        element.id =
+            "userAccountDisplay";
+
+
+        element.style.position =
+            "fixed";
+
+        element.style.top =
+            "55px";
+
+        element.style.right =
+            "15px";
+
+        element.style.zIndex =
+            "9998";
+
+        element.style.padding =
+            "5px 9px";
+
+        element.style.borderRadius =
+            "8px";
+
+        element.style.background =
+            "rgba(255,255,255,0.92)";
+
+        element.style.color =
+            "#374151";
+
+        element.style.fontSize =
+            "10px";
+
+        document.body.appendChild(
+            element
+        );
+
+    }
+
+
+    element.textContent =
+        currentUser.email || "";
 
 }
 
@@ -611,7 +1327,7 @@ async function loginWithGoogle() {
    ログアウト
 ===================================================== */
 
-async function logout() {
+async function logoutUser() {
 
     if (!auth) return;
 
@@ -631,16 +1347,6 @@ async function logout() {
 
         await signOut(auth);
 
-        currentUser = null;
-
-        renderAuthUI();
-
-        showCloudStatus(
-            "👋 ログアウトしました"
-        );
-
-        renderAll();
-
     }
     catch (error) {
 
@@ -649,9 +1355,65 @@ async function logout() {
             error
         );
 
-        alert(
-            "ログアウトに失敗しました。"
+    }
+
+}
+
+
+/* =====================================================
+   ログイン画面表示 / 非表示
+===================================================== */
+
+function showLoginScreen() {
+
+    const overlay =
+        createLoginScreen();
+
+
+    overlay.style.display =
+        "flex";
+
+
+    const logoutButton =
+        document.getElementById(
+            "logoutButton"
         );
+
+
+    const userDisplay =
+        document.getElementById(
+            "userAccountDisplay"
+        );
+
+
+    if (logoutButton) {
+
+        logoutButton.remove();
+
+    }
+
+
+    if (userDisplay) {
+
+        userDisplay.remove();
+
+    }
+
+}
+
+
+function hideLoginScreen() {
+
+    const overlay =
+        document.getElementById(
+            "loginOverlay"
+        );
+
+
+    if (overlay) {
+
+        overlay.style.display =
+            "none";
 
     }
 
@@ -662,17 +1424,13 @@ async function logout() {
    Firestore保存
 ===================================================== */
 
-let cloudLoading = false;
-let cloudSaving = false;
-
-
 async function saveToCloud() {
 
-    const ref =
+    const cloudDataRef =
         getCloudDataRef();
 
 
-    if (!ref) {
+    if (!cloudDataRef) {
 
         return false;
 
@@ -692,22 +1450,22 @@ async function saveToCloud() {
     try {
 
         await setDoc(
-            ref,
+
+            cloudDataRef,
+
             {
+
                 data:
-                    structuredClone(data),
+                    structuredClone(
+                        data
+                    ),
 
                 updatedAt:
-                    new Date().toISOString(),
+                    new Date()
+                        .toISOString()
 
-                userEmail:
-                    currentUser?.email ||
-                    "",
-
-                userName:
-                    currentUser?.displayName ||
-                    ""
             }
+
         );
 
 
@@ -755,18 +1513,11 @@ async function saveToCloud() {
 
 async function loadFromCloud() {
 
-    const ref =
+    const cloudDataRef =
         getCloudDataRef();
 
 
-    if (!ref) {
-
-        return;
-
-    }
-
-
-    if (cloudLoading) {
+    if (!cloudDataRef) {
 
         return;
 
@@ -779,7 +1530,9 @@ async function loadFromCloud() {
     try {
 
         const snapshot =
-            await getDoc(ref);
+            await getDoc(
+                cloudDataRef
+            );
 
 
         if (snapshot.exists()) {
@@ -803,7 +1556,7 @@ async function loadFromCloud() {
 
 
                 console.log(
-                    "☁️ Firestoreデータ読み込み成功"
+                    "☁️ クラウドデータ読み込み成功"
                 );
 
 
@@ -817,8 +1570,9 @@ async function loadFromCloud() {
         else {
 
             /*
-                新規ユーザーの場合
-                現在のデータをクラウドへ保存
+                初回ログイン時。
+                現在のローカルデータを
+                ユーザー専用クラウドへ保存
             */
 
             await saveToCloud();
@@ -858,8 +1612,8 @@ function saveData() {
 
 
     if (
-        currentUser &&
         firebaseReady &&
+        currentUser &&
         !cloudLoading
     ) {
 
@@ -984,8 +1738,9 @@ function renderEvents() {
 
             fee.textContent =
                 "参加費 ¥" +
-                Number(event.fee)
-                    .toLocaleString();
+                Number(
+                    event.fee
+                ).toLocaleString();
 
 
             const deleteButton =
@@ -2050,7 +2805,9 @@ function bulkAbsent() {
 
     const targetMembers =
         selectedGroupFilter === "all"
+
             ? [...data.members]
+
             : data.members.filter(
                 member =>
                     member.groupId ===
@@ -2073,7 +2830,9 @@ function bulkAbsent() {
 
     const targetName =
         selectedGroupFilter === "all"
+
             ? "全員"
+
             : (
                 data.groups.find(
                     group =>
@@ -2126,7 +2885,9 @@ function bulkPresent() {
 
     const targetMembers =
         selectedGroupFilter === "all"
+
             ? [...data.members]
+
             : data.members.filter(
                 member =>
                     member.groupId ===
@@ -2515,25 +3276,30 @@ function updateStats() {
             "participantCount"
         );
 
+
     const paidElement =
         document.getElementById(
             "paidCount"
         );
+
 
     const unpaidElement =
         document.getElementById(
             "unpaidCount"
         );
 
+
     const absentElement =
         document.getElementById(
             "absentCount"
         );
 
+
     const collectedElement =
         document.getElementById(
             "collectedMoney"
         );
+
 
     const remainingElement =
         document.getElementById(
@@ -2749,10 +3515,12 @@ function renderFinance() {
             "participationIncomeList"
         );
 
+
     const incomeList =
         document.getElementById(
             "incomeList"
         );
+
 
     const expenseList =
         document.getElementById(
@@ -2763,8 +3531,10 @@ function renderFinance() {
     if (participationList)
         participationList.innerHTML = "";
 
+
     if (incomeList)
         incomeList.innerHTML = "";
+
 
     if (expenseList)
         expenseList.innerHTML = "";
@@ -2803,6 +3573,7 @@ function renderFinance() {
                         "div"
                     );
 
+
                 item.className =
                     "finance-item";
 
@@ -2811,6 +3582,7 @@ function renderFinance() {
                     document.createElement(
                         "div"
                     );
+
 
                 left.className =
                     "finance-item-left";
@@ -2821,8 +3593,10 @@ function renderFinance() {
                         "span"
                     );
 
+
                 name.className =
                     "finance-item-name";
+
 
                 name.textContent =
                     member.name;
@@ -2833,8 +3607,10 @@ function renderFinance() {
                         "span"
                     );
 
+
                 date.className =
                     "finance-item-date";
+
 
                 date.textContent =
                     "参加費";
@@ -2850,6 +3626,7 @@ function renderFinance() {
                         "div"
                     );
 
+
                 right.className =
                     "finance-item-right";
 
@@ -2859,8 +3636,10 @@ function renderFinance() {
                         "span"
                     );
 
+
                 amount.className =
                     "finance-item-amount income-amount";
+
 
                 amount.textContent =
                     "+ ¥" +
@@ -2960,15 +3739,18 @@ function renderFinance() {
             "participationIncomeTotal"
         );
 
+
     const otherIncomeElement =
         document.getElementById(
             "otherIncomeTotal"
         );
 
+
     const expenseElement =
         document.getElementById(
             "expenseTotal"
         );
+
 
     const balanceElement =
         document.getElementById(
@@ -3029,6 +3811,7 @@ function createFinanceItem(
             "div"
         );
 
+
     left.className =
         "finance-item-left";
 
@@ -3038,8 +3821,10 @@ function createFinanceItem(
             "span"
         );
 
+
     name.className =
         "finance-item-name";
+
 
     name.textContent =
         item.name;
@@ -3050,8 +3835,10 @@ function createFinanceItem(
             "span"
         );
 
+
     date.className =
         "finance-item-date";
+
 
     date.textContent =
         item.date;
@@ -3067,6 +3854,7 @@ function createFinanceItem(
             "div"
         );
 
+
     right.className =
         "finance-item-right";
 
@@ -3075,6 +3863,7 @@ function createFinanceItem(
         document.createElement(
             "span"
         );
+
 
     amount.className =
         "finance-item-amount " +
@@ -3100,8 +3889,10 @@ function createFinanceItem(
             "button"
         );
 
+
     deleteButton.className =
         "delete-finance";
+
 
     deleteButton.textContent =
         "×";
@@ -3189,10 +3980,12 @@ function calculateCustom() {
             "calcPeople"
         );
 
+
     const totalElement =
         document.getElementById(
             "calcTotal"
         );
+
 
     const resultElement =
         document.getElementById(
@@ -3295,25 +4088,31 @@ async function resetAllData() {
     saveLocalOnly();
 
 
-    const ref =
+    const cloudDataRef =
         getCloudDataRef();
 
 
-    if (ref) {
+    if (cloudDataRef) {
 
         try {
 
             await setDoc(
-                ref,
+
+                cloudDataRef,
+
                 {
+
                     data:
                         structuredClone(
                             DEFAULT_DATA
                         ),
 
                     updatedAt:
-                        new Date().toISOString()
+                        new Date()
+                            .toISOString()
+
                 }
+
             );
 
         }
@@ -3470,7 +4269,7 @@ function importData(event) {
                 );
 
 
-                location.reload();
+                renderAll();
 
             }
             catch (error) {
@@ -3649,10 +4448,12 @@ function updateOverallFinance() {
             "overallIncome"
         );
 
+
     const expenseElement =
         document.getElementById(
             "overallExpense"
         );
+
 
     const balanceElement =
         document.getElementById(
@@ -3690,106 +4491,151 @@ function updateOverallFinance() {
 
 
 /* =====================================================
-   Firebase Authentication監視
+   Authentication状態監視
 ===================================================== */
 
-function initializeAuthentication() {
+let firstAuthCheck = true;
+
+
+function setupAuthentication() {
 
     if (!auth) {
 
-        renderAuthUI();
-
-        renderAll();
+        console.error(
+            "Firebase Authenticationを初期化できませんでした"
+        );
 
         return;
 
     }
 
 
+    createLoginScreen();
+
+
     onAuthStateChanged(
         auth,
         async user => {
+
+            console.log(
+                "🔐 Authentication状態:",
+                user
+                    ? user.email
+                    : "ログアウト"
+            );
+
+
+            if (!user) {
+
+                currentUser = null;
+
+                showLoginScreen();
+
+                return;
+
+            }
+
 
             currentUser =
                 user;
 
 
-            renderAuthUI();
+            console.log(
+                "👤 ログインユーザー:",
+                user.uid
+            );
 
 
-            if (user) {
+            hideLoginScreen();
 
-                console.log(
-                    "👤 ログイン:",
-                    user.displayName,
-                    user.email
+            createLogoutButton();
+
+
+            /*
+                ユーザー専用LocalStorageを読み込む
+            */
+
+            const localKey =
+                getLocalStorageKey();
+
+
+            const localSaved =
+                localStorage.getItem(
+                    localKey
                 );
 
 
-                showCloudStatus(
-                    "☁️ クラウドデータ確認中..."
-                );
+            if (localSaved) {
 
+                try {
 
-                await loadFromCloud();
+                    data =
+                        JSON.parse(
+                            localSaved
+                        );
 
+                    normalizeData(
+                        data
+                    );
 
-                renderAll();
+                }
+                catch (error) {
 
+                    console.error(
+                        "ユーザーローカルデータ読み込みエラー:",
+                        error
+                    );
+
+                    data =
+                        structuredClone(
+                            DEFAULT_DATA
+                        );
+
+                }
 
             }
             else {
 
-                console.log(
-                    "👤 未ログイン"
-                );
-
-
-                renderAll();
+                data =
+                    structuredClone(
+                        DEFAULT_DATA
+                    );
 
             }
+
+
+            /*
+                まずローカルデータを表示
+            */
+
+            renderAll();
+
+
+            /*
+                Firestoreから最新データを取得
+            */
+
+            await loadFromCloud();
+
+
+            /*
+                クラウド取得後に再描画
+            */
+
+            renderAll();
+
+
+            showCloudStatus(
+                "☁️ ログイン・クラウド接続完了"
+            );
+
+
+            firstAuthCheck = false;
 
         }
     );
 
 }
-
-
-/* =====================================================
-   初期化
-===================================================== */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
-
-        /*
-            まずローカルデータを表示
-        */
-
-        renderAll();
-
-
-        /*
-            Authentication監視開始
-        */
-
-        initializeAuthentication();
-
-
-        /*
-            ログインUI
-        */
-
-        renderAuthUI();
-
-
-        console.log(
-            "🚀 Circle Accounting 起動完了"
-        );
-
-    }
-);
 
 
 /* =====================================================
@@ -3865,16 +4711,37 @@ window.importData =
 window.changeFee =
     changeFee;
 
-
-/* Authentication */
-
-window.loginWithGoogle =
-    loginWithGoogle;
-
-window.logout =
-    logout;
+window.logoutUser =
+    logoutUser;
 
 
-console.log(
-    "🔥 Circle Accounting Firebase Authentication版"
+/* =====================================================
+   起動
+===================================================== */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        console.log(
+            "🚀 Circle Accounting 起動"
+        );
+
+
+        if (!firebaseReady) {
+
+            console.error(
+                "Firebaseが利用できません"
+            );
+
+            renderAll();
+
+            return;
+
+        }
+
+
+        setupAuthentication();
+
+    }
 );
