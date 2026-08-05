@@ -34,70 +34,37 @@
 
 <div
     id="authScreen"
-    style="
-        min-height:100vh;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        padding:20px;
-        background:#f3f4f6;
-    "
+    class="auth-screen"
 >
 
-    <div
-        style="
-            width:100%;
-            max-width:420px;
-            background:white;
-            border-radius:20px;
-            padding:30px 24px;
-            box-shadow:0 10px 30px rgba(0,0,0,.12);
-        "
-    >
+    <div class="auth-card">
 
-        <div style="text-align:center; margin-bottom:25px;">
-
-            <div style="font-size:48px;">
-                ⚽
-            </div>
-
-            <h1 style="margin:8px 0;">
-                Circle Accounting
-            </h1>
-
-            <p style="color:#6b7280; margin:0;">
-                サークル会計管理システム
-            </p>
-
+        <div class="auth-logo">
+            ⚽
         </div>
+
+        <h1>
+            Circle Accounting
+        </h1>
+
+        <p class="auth-subtitle">
+            サークル会計管理システム
+        </p>
 
 
         <div
-            id="loginForm"
-        >
+            id="authMessage"
+            class="auth-message"
+        ></div>
 
-            <h2
-                id="authTitle"
-                style="margin-bottom:20px;"
-            >
-                ログイン
-            </h2>
 
+        <div class="auth-form">
 
             <input
                 id="authEmail"
                 type="email"
                 placeholder="メールアドレス"
                 autocomplete="email"
-                style="
-                    width:100%;
-                    box-sizing:border-box;
-                    padding:14px;
-                    margin-bottom:12px;
-                    border:1px solid #d1d5db;
-                    border-radius:10px;
-                    font-size:16px;
-                "
             >
 
 
@@ -106,32 +73,13 @@
                 type="password"
                 placeholder="パスワード"
                 autocomplete="current-password"
-                style="
-                    width:100%;
-                    box-sizing:border-box;
-                    padding:14px;
-                    margin-bottom:14px;
-                    border:1px solid #d1d5db;
-                    border-radius:10px;
-                    font-size:16px;
-                "
             >
 
 
             <button
                 id="authMainButton"
+                class="auth-main-button"
                 type="button"
-                style="
-                    width:100%;
-                    padding:14px;
-                    border:0;
-                    border-radius:10px;
-                    background:#111827;
-                    color:white;
-                    font-size:16px;
-                    font-weight:bold;
-                    cursor:pointer;
-                "
             >
                 ログイン
             </button>
@@ -139,17 +87,8 @@
 
             <button
                 id="authModeButton"
+                class="auth-mode-button"
                 type="button"
-                style="
-                    width:100%;
-                    margin-top:12px;
-                    padding:12px;
-                    border:0;
-                    background:transparent;
-                    color:#2563eb;
-                    font-size:14px;
-                    cursor:pointer;
-                "
             >
                 新規アカウントを作成
             </button>
@@ -157,31 +96,19 @@
 
             <button
                 id="resetPasswordButton"
+                class="reset-password-button"
                 type="button"
-                style="
-                    width:100%;
-                    padding:10px;
-                    border:0;
-                    background:transparent;
-                    color:#6b7280;
-                    font-size:13px;
-                    cursor:pointer;
-                "
             >
                 パスワードを忘れた場合
             </button>
 
 
             <div
-                id="authMessage"
-                style="
-                    margin-top:15px;
-                    text-align:center;
-                    font-size:14px;
-                    color:#dc2626;
-                    min-height:20px;
-                "
-            ></div>
+                id="authLoading"
+                class="auth-loading"
+            >
+                処理中...
+            </div>
 
         </div>
 
@@ -192,20 +119,24 @@
 
 
 <!-- =====================================================
-     APP
+     APPLICATION
 ===================================================== -->
 
 <div
     id="app"
-    style="display:none;"
+    class="app-hidden"
 >
 
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
 
 <header>
 
     <div class="header-inner">
 
-        <div>
+        <div class="header-title">
 
             <h1>
                 ⚽ Circle Accounting
@@ -222,17 +153,14 @@
 
             <span
                 id="userEmail"
-                style="
-                    font-size:12px;
-                    opacity:.8;
-                    margin-right:8px;
-                "
+                class="user-email"
             ></span>
 
 
             <button
+                id="exportButton"
                 class="header-btn"
-                onclick="exportData()"
+                type="button"
             >
                 💾 バックアップ
             </button>
@@ -248,7 +176,6 @@
                     type="file"
                     id="importFile"
                     accept=".json"
-                    onchange="importData(event)"
                     hidden
                 >
 
@@ -256,8 +183,9 @@
 
 
             <button
+                id="logoutButton"
                 class="header-btn"
-                onclick="logout()"
+                type="button"
             >
                 🚪 ログアウト
             </button>
@@ -270,8 +198,16 @@
 
 
 
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
 <main>
 
+
+<!-- =====================================================
+     OVERALL FINANCE
+===================================================== -->
 
 <section class="panel">
 
@@ -338,6 +274,10 @@
 
 
 
+<!-- =====================================================
+     EVENTS
+===================================================== -->
+
 <section class="panel">
 
     <div class="section-header">
@@ -356,8 +296,9 @@
 
 
         <button
+            id="addEventButton"
             class="primary-btn"
-            onclick="addEvent()"
+            type="button"
         >
             ＋ 目的を追加
         </button>
@@ -373,6 +314,10 @@
 </section>
 
 
+
+<!-- =====================================================
+     SELECTED EVENT
+===================================================== -->
 
 <section class="panel">
 
@@ -402,8 +347,9 @@
             </strong>
 
             <button
+                id="changeFeeButton"
                 class="fee-change-btn"
-                onclick="changeFee()"
+                type="button"
             >
                 ✏️ 参加費変更
             </button>
@@ -411,7 +357,6 @@
         </div>
 
     </div>
-
 
 
     <div class="stats">
@@ -499,6 +444,10 @@
 
 
 
+<!-- =====================================================
+     FINANCE
+===================================================== -->
+
 <section class="panel">
 
     <div class="section-header">
@@ -519,16 +468,18 @@
         <div class="finance-buttons">
 
             <button
+                id="addIncomeButton"
                 class="income-btn"
-                onclick="addIncome()"
+                type="button"
             >
                 ＋ その他収入
             </button>
 
 
             <button
+                id="addExpenseButton"
                 class="expense-btn"
-                onclick="addExpense()"
+                type="button"
             >
                 ＋ 支出
             </button>
@@ -536,7 +487,6 @@
         </div>
 
     </div>
-
 
 
     <div class="finance-summary">
@@ -638,6 +588,10 @@
 
 
 
+<!-- =====================================================
+     GROUPS
+===================================================== -->
+
 <section class="panel">
 
     <div class="section-header">
@@ -656,8 +610,9 @@
 
 
         <button
+            id="addGroupButton"
             class="primary-btn"
-            onclick="addGroup()"
+            type="button"
         >
             ＋ グループ追加
         </button>
@@ -673,6 +628,10 @@
 </section>
 
 
+
+<!-- =====================================================
+     MEMBERS
+===================================================== -->
 
 <section class="panel">
 
@@ -692,8 +651,9 @@
 
 
         <button
+            id="addMemberButton"
             class="primary-btn"
-            onclick="addMember()"
+            type="button"
         >
             ＋ メンバー追加
         </button>
@@ -705,24 +665,27 @@
     <div class="bulk-actions">
 
         <button
+            id="bulkAbsentButton"
             class="bulk-btn absent-bulk"
-            onclick="bulkAbsent()"
+            type="button"
         >
             🚫 一括不参加
         </button>
 
 
         <button
+            id="bulkPresentButton"
             class="bulk-btn present-bulk"
-            onclick="bulkPresent()"
+            type="button"
         >
             👥 全員参加に戻す
         </button>
 
 
         <button
+            id="sortMembersButton"
             class="bulk-btn sort-bulk"
-            onclick="sortMembersByName()"
+            type="button"
         >
             🔤 名前順
         </button>
@@ -767,6 +730,10 @@
 
 
 
+<!-- =====================================================
+     CALCULATOR
+===================================================== -->
+
 <section class="panel">
 
     <div class="section-header">
@@ -786,7 +753,6 @@
     </div>
 
 
-
     <div class="calculator">
 
         <div class="input-group">
@@ -801,7 +767,6 @@
                 value="10"
                 min="1"
                 inputmode="numeric"
-                oninput="calculateCustom()"
             >
 
         </div>
@@ -819,7 +784,6 @@
                 value="30000"
                 min="0"
                 inputmode="numeric"
-                oninput="calculateCustom()"
             >
 
         </div>
@@ -843,6 +807,10 @@
 
 
 
+<!-- =====================================================
+     SETTINGS
+===================================================== -->
+
 <section class="panel settings-panel">
 
     <h2>
@@ -857,16 +825,18 @@
     <div class="settings-buttons">
 
         <button
-            onclick="resetCurrentEvent()"
+            id="resetCurrentEventButton"
             class="danger-btn"
+            type="button"
         >
             現在の会計をリセット
         </button>
 
 
         <button
-            onclick="resetAllData()"
+            id="resetAllDataButton"
             class="danger-btn"
+            type="button"
         >
             全データを削除
         </button>
@@ -880,6 +850,10 @@
 
 
 
+<!-- =====================================================
+     FOOTER
+===================================================== -->
+
 <footer>
 
     <p>
@@ -887,7 +861,7 @@
     </p>
 
     <span>
-        クラウドに安全に保存されています
+        Firebaseに安全に保存されています
     </span>
 
 </footer>

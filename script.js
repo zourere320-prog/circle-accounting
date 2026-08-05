@@ -1,7 +1,7 @@
 /* =====================================================
    Circle Accounting
-   Firebase Authentication + Firestore + LocalStorage
-   Mobile / GitHub Pages対応 完成版
+   Firebase Authentication + Firestore
+   Complete Version
 ===================================================== */
 
 import {
@@ -19,56 +19,82 @@ import {
     getAuth,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
+    sendPasswordResetEmail,
     signOut,
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 
 /* =====================================================
-   Firebase設定
+   Firebase Configuration
 ===================================================== */
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAvDWjqiv4G-fMW3_ovTtDLXT-514Q5TX8",
-    authDomain: "circle-accounting-b2194.firebaseapp.com",
-    projectId: "circle-accounting-b2194",
-    storageBucket: "circle-accounting-b2194.firebasestorage.app",
-    messagingSenderId: "122808479714",
-    appId: "1:122808479714:web:b4f74aa3412064bee653bb"
+
+    apiKey:
+        "AIzaSyAvDWjqiv4G-fMW3_ovTtDLXT-514Q5TX8",
+
+    authDomain:
+        "circle-accounting-b2194.firebaseapp.com",
+
+    projectId:
+        "circle-accounting-b2194",
+
+    storageBucket:
+        "circle-accounting-b2194.firebasestorage.app",
+
+    messagingSenderId:
+        "122808479714",
+
+    appId:
+        "1:122808479714:web:b4f74aa3412064bee653bb"
+
 };
 
 
 /* =====================================================
-   Firebase初期化
+   Firebase Initialization
 ===================================================== */
 
 let firebaseApp = null;
+
 let db = null;
+
 let auth = null;
 
 let firebaseReady = false;
+
 let currentUser = null;
+
 
 try {
 
     firebaseApp =
-        initializeApp(firebaseConfig);
+        initializeApp(
+            firebaseConfig
+        );
 
     db =
-        getFirestore(firebaseApp);
+        getFirestore(
+            firebaseApp
+        );
 
     auth =
-        getAuth(firebaseApp);
+        getAuth(
+            firebaseApp
+        );
 
     firebaseReady = true;
 
-    console.log("🔥 Firebase初期化成功");
+    console.log(
+        "🔥 Firebase initialization successful"
+    );
 
 }
 catch (error) {
 
     console.error(
-        "Firebase初期化エラー:",
+        "Firebase initialization error:",
         error
     );
 
@@ -78,7 +104,7 @@ catch (error) {
 
 
 /* =====================================================
-   初期グループ
+   Default Groups
 ===================================================== */
 
 const DEFAULT_GROUPS = [
@@ -93,7 +119,7 @@ const DEFAULT_GROUPS = [
 
 
 /* =====================================================
-   初期データ
+   Default Data
 ===================================================== */
 
 const DEFAULT_DATA = {
@@ -152,7 +178,9 @@ const DEFAULT_DATA = {
     ],
 
     groups:
-        structuredClone(DEFAULT_GROUPS),
+        structuredClone(
+            DEFAULT_GROUPS
+        ),
 
     currentEventId: 1
 
@@ -160,15 +188,42 @@ const DEFAULT_DATA = {
 
 
 /* =====================================================
-   データ本体
+   Application Data
 ===================================================== */
 
 let data =
-    loadLocalData();
+    structuredClone(
+        DEFAULT_DATA
+    );
 
 
 /* =====================================================
-   LocalStorageキー
+   State
+===================================================== */
+
+let selectedGroupFilter =
+    "all";
+
+let cloudLoading = false;
+
+let cloudSaving = false;
+
+let authInitialized = false;
+
+
+/* =====================================================
+   DOM Helper
+===================================================== */
+
+function $(id) {
+
+    return document.getElementById(id);
+
+}
+
+
+/* =====================================================
+   LocalStorage Key
 ===================================================== */
 
 function getLocalStorageKey() {
@@ -188,59 +243,7 @@ function getLocalStorageKey() {
 
 
 /* =====================================================
-   LocalStorage読み込み
-===================================================== */
-
-function loadLocalData() {
-
-    try {
-
-        const possibleKeys = [
-
-            "circleAccounting",
-
-            "circleAccounting_guest"
-
-        ];
-
-        for (
-            const key of possibleKeys
-        ) {
-
-            const saved =
-                localStorage.getItem(key);
-
-            if (!saved) continue;
-
-            const parsed =
-                JSON.parse(saved);
-
-            normalizeData(parsed);
-
-            return parsed;
-
-        }
-
-    }
-    catch (error) {
-
-        console.error(
-            "LocalStorage読み込みエラー:",
-            error
-        );
-
-    }
-
-
-    return structuredClone(
-        DEFAULT_DATA
-    );
-
-}
-
-
-/* =====================================================
-   データ整形
+   Normalize Data
 ===================================================== */
 
 function normalizeData(target) {
@@ -256,7 +259,31 @@ function normalizeData(target) {
 
 
     if (
-        !Array.isArray(target.groups)
+        !Array.isArray(
+            target.events
+        )
+    ) {
+
+        target.events = [];
+
+    }
+
+
+    if (
+        !Array.isArray(
+            target.members
+        )
+    ) {
+
+        target.members = [];
+
+    }
+
+
+    if (
+        !Array.isArray(
+            target.groups
+        )
     ) {
 
         target.groups =
@@ -268,19 +295,17 @@ function normalizeData(target) {
 
 
     if (
-        !Array.isArray(target.members)
+        !target.groups.some(
+            group =>
+                Number(group.id) === 1
+        )
     ) {
 
-        target.members = [];
-
-    }
-
-
-    if (
-        !Array.isArray(target.events)
-    ) {
-
-        target.events = [];
+        target.groups.unshift(
+            structuredClone(
+                DEFAULT_GROUPS[0]
+            )
+        );
 
     }
 
@@ -288,7 +313,10 @@ function normalizeData(target) {
     target.members.forEach(
         member => {
 
-            if (!member.groupId) {
+            if (
+                member.groupId === undefined ||
+                member.groupId === null
+            ) {
 
                 member.groupId = 1;
 
@@ -301,45 +329,67 @@ function normalizeData(target) {
     target.events.forEach(
         event => {
 
-            if (!event.members) {
+            if (
+                !event.members ||
+                typeof event.members !== "object"
+            ) {
 
                 event.members = {};
 
             }
 
-            if (!Array.isArray(event.income)) {
+
+            if (
+                !Array.isArray(
+                    event.income
+                )
+            ) {
 
                 event.income = [];
 
             }
 
-            if (!Array.isArray(event.expenses)) {
+
+            if (
+                !Array.isArray(
+                    event.expenses
+                )
+            ) {
 
                 event.expenses = [];
 
             }
 
-            if (
-                typeof event.fee !== "number"
-            ) {
 
-                event.fee =
-                    Number(event.fee) || 0;
-
-            }
+            event.fee =
+                Number(event.fee) || 0;
 
         }
     );
 
 
     if (
-        target.events.length > 0 &&
-        !target.events.some(
+        target.events.length === 0
+    ) {
+
+        target.events.push(
+            structuredClone(
+                DEFAULT_DATA.events[0]
+            )
+        );
+
+    }
+
+
+    const currentExists =
+        target.events.some(
             event =>
                 event.id ===
                 target.currentEventId
-        )
-    ) {
+        );
+
+
+    if (!currentExists) {
 
         target.currentEventId =
             target.events[0].id;
@@ -350,7 +400,63 @@ function normalizeData(target) {
 
 
 /* =====================================================
-   LocalStorage保存
+   LocalStorage Load
+===================================================== */
+
+function loadLocalData() {
+
+    try {
+
+        const key =
+            getLocalStorageKey();
+
+        const saved =
+            localStorage.getItem(
+                key
+            );
+
+
+        if (!saved) {
+
+            return structuredClone(
+                DEFAULT_DATA
+            );
+
+        }
+
+
+        const parsed =
+            JSON.parse(
+                saved
+            );
+
+
+        normalizeData(
+            parsed
+        );
+
+
+        return parsed;
+
+    }
+    catch (error) {
+
+        console.error(
+            "Local data load error:",
+            error
+        );
+
+        return structuredClone(
+            DEFAULT_DATA
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   LocalStorage Save
 ===================================================== */
 
 function saveLocalOnly() {
@@ -358,15 +464,20 @@ function saveLocalOnly() {
     try {
 
         localStorage.setItem(
+
             getLocalStorageKey(),
-            JSON.stringify(data)
+
+            JSON.stringify(
+                data
+            )
+
         );
 
     }
     catch (error) {
 
         console.error(
-            "LocalStorage保存エラー:",
+            "LocalStorage save error:",
             error
         );
 
@@ -376,7 +487,7 @@ function saveLocalOnly() {
 
 
 /* =====================================================
-   Firestore参照
+   Firestore Reference
 ===================================================== */
 
 function getCloudDataRef() {
@@ -393,106 +504,66 @@ function getCloudDataRef() {
 
 
     return doc(
+
         db,
+
         "users",
+
         currentUser.uid,
+
         "accounting",
+
         "data"
+
     );
 
 }
 
 
 /* =====================================================
-   Firebase状態
-===================================================== */
-
-let cloudLoading = false;
-let cloudSaving = false;
-
-
-/* =====================================================
-   クラウド状態表示
+   Cloud Status
 ===================================================== */
 
 function showCloudStatus(message) {
 
-    let status =
-        document.getElementById(
-            "cloudStatus"
-        );
+    let element =
+        $("cloudStatus");
 
 
-    if (!status) {
+    if (!element) {
 
-        status =
+        element =
             document.createElement(
                 "div"
             );
 
-        status.id =
+        element.id =
             "cloudStatus";
 
-        status.style.position =
-            "fixed";
-
-        status.style.right =
-            "15px";
-
-        status.style.bottom =
-            "15px";
-
-        status.style.zIndex =
-            "99999";
-
-        status.style.padding =
-            "9px 13px";
-
-        status.style.borderRadius =
-            "10px";
-
-        status.style.background =
-            "#111827";
-
-        status.style.color =
-            "white";
-
-        status.style.fontSize =
-            "12px";
-
-        status.style.fontWeight =
-            "bold";
-
-        status.style.boxShadow =
-            "0 4px 12px rgba(0,0,0,0.2)";
-
-        status.style.transition =
-            "opacity .3s";
-
         document.body.appendChild(
-            status
+            element
         );
 
     }
 
 
-    status.textContent =
+    element.textContent =
         message;
 
-    status.style.opacity =
+    element.style.opacity =
         "1";
 
 
     clearTimeout(
-        status._timer
+        element._timer
     );
 
 
-    status._timer =
+    element._timer =
         setTimeout(
             () => {
 
-                status.style.opacity =
+                element.style.opacity =
                     "0.75";
 
             },
@@ -503,358 +574,84 @@ function showCloudStatus(message) {
 
 
 /* =====================================================
-   ログイン画面
+   Authentication Message
 ===================================================== */
 
-function createLoginScreen() {
-
-    let overlay =
-        document.getElementById(
-            "loginOverlay"
-        );
-
-
-    if (overlay) {
-
-        return overlay;
-
-    }
-
-
-    overlay =
-        document.createElement(
-            "div"
-        );
-
-
-    overlay.id =
-        "loginOverlay";
-
-
-    overlay.innerHTML = `
-
-        <div class="login-box">
-
-            <div class="login-logo">
-                ⚽
-            </div>
-
-            <h1>
-                Circle Accounting
-            </h1>
-
-            <p class="login-subtitle">
-                サークル会計管理システム
-            </p>
-
-
-            <div
-                id="loginMessage"
-                class="login-message">
-            </div>
-
-
-            <input
-                type="email"
-                id="loginEmail"
-                placeholder="メールアドレス"
-                autocomplete="email"
-            >
-
-
-            <input
-                type="password"
-                id="loginPassword"
-                placeholder="パスワード"
-                autocomplete="current-password"
-            >
-
-
-            <button
-                id="loginButton"
-                class="login-primary">
-                ログイン
-            </button>
-
-
-            <button
-                id="registerButton"
-                class="login-secondary">
-                新規アカウント登録
-            </button>
-
-
-            <div
-                id="loginLoading"
-                class="login-loading">
-                処理中...
-            </div>
-
-        </div>
-
-    `;
-
-
-    const style =
-        document.createElement(
-            "style"
-        );
-
-
-    style.textContent = `
-
-        #loginOverlay {
-
-            position: fixed;
-            inset: 0;
-            z-index: 100000;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            padding: 20px;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #eff6ff,
-                    #f8fafc
-                );
-
-            box-sizing: border-box;
-
-        }
-
-
-        .login-box {
-
-            width: 100%;
-            max-width: 420px;
-
-            padding: 32px 24px;
-
-            background: white;
-
-            border-radius: 24px;
-
-            box-shadow:
-                0 20px 60px
-                rgba(0,0,0,0.12);
-
-            text-align: center;
-
-            box-sizing: border-box;
-
-        }
-
-
-        .login-logo {
-
-            font-size: 48px;
-
-            margin-bottom: 8px;
-
-        }
-
-
-        .login-box h1 {
-
-            margin: 0;
-
-            font-size: 25px;
-
-            color: #111827;
-
-        }
-
-
-        .login-subtitle {
-
-            margin:
-                8px 0 24px;
-
-            color: #6b7280;
-
-            font-size: 14px;
-
-        }
-
-
-        .login-box input {
-
-            width: 100%;
-
-            box-sizing: border-box;
-
-            padding: 14px 15px;
-
-            margin-bottom: 12px;
-
-            border:
-                1px solid #d1d5db;
-
-            border-radius: 12px;
-
-            font-size: 16px;
-
-            outline: none;
-
-        }
-
-
-        .login-box input:focus {
-
-            border-color: #2563eb;
-
-            box-shadow:
-                0 0 0 3px
-                rgba(37,99,235,0.12);
-
-        }
-
-
-        .login-primary,
-        .login-secondary {
-
-            width: 100%;
-
-            border: none;
-
-            border-radius: 12px;
-
-            padding: 14px;
-
-            font-size: 16px;
-
-            font-weight: bold;
-
-            cursor: pointer;
-
-            margin-top: 4px;
-
-        }
-
-
-        .login-primary {
-
-            background: #2563eb;
-
-            color: white;
-
-        }
-
-
-        .login-secondary {
-
-            background: #eff6ff;
-
-            color: #2563eb;
-
-            margin-top: 10px;
-
-        }
-
-
-        .login-message {
-
-            min-height: 20px;
-
-            margin-bottom: 10px;
-
-            color: #dc2626;
-
-            font-size: 13px;
-
-        }
-
-
-        .login-loading {
-
-            display: none;
-
-            margin-top: 15px;
-
-            color: #6b7280;
-
-            font-size: 13px;
-
-        }
-
-
-        @media (max-width: 480px) {
-
-            #loginOverlay {
-
-                padding: 14px;
-
-            }
-
-            .login-box {
-
-                padding:
-                    28px 18px;
-
-                border-radius: 20px;
-
-            }
-
-        }
-
-    `;
-
-
-    document.head.appendChild(
-        style
-    );
-
-
-    document.body.appendChild(
-        overlay
-    );
-
-
-    const loginButton =
-        document.getElementById(
-            "loginButton"
-        );
-
-
-    const registerButton =
-        document.getElementById(
-            "registerButton"
-        );
-
-
-    loginButton.onclick =
-        loginUser;
-
-
-    registerButton.onclick =
-        registerUser;
-
-
-    return overlay;
-
-}
-
-
-/* =====================================================
-   ログインメッセージ
-===================================================== */
-
-function showLoginMessage(message) {
+function showAuthMessage(
+    message,
+    success = false
+) {
 
     const element =
-        document.getElementById(
-            "loginMessage"
-        );
+        $("authMessage");
 
 
-    if (element) {
+    if (!element) return;
 
-        element.textContent =
-            message;
+
+    element.textContent =
+        message;
+
+
+    element.classList.toggle(
+        "success",
+        success
+    );
+
+}
+
+
+/* =====================================================
+   Auth Loading
+===================================================== */
+
+function setAuthLoading(
+    loading
+) {
+
+    const loadingElement =
+        $("authLoading");
+
+    const mainButton =
+        $("authMainButton");
+
+    const modeButton =
+        $("authModeButton");
+
+    const resetButton =
+        $("resetPasswordButton");
+
+
+    if (loadingElement) {
+
+        loadingElement.style.display =
+            loading
+                ? "block"
+                : "none";
+
+    }
+
+
+    if (mainButton) {
+
+        mainButton.disabled =
+            loading;
+
+    }
+
+
+    if (modeButton) {
+
+        modeButton.disabled =
+            loading;
+
+    }
+
+
+    if (resetButton) {
+
+        resetButton.disabled =
+            loading;
 
     }
 
@@ -862,129 +659,23 @@ function showLoginMessage(message) {
 
 
 /* =====================================================
-   ログイン処理
+   Auth Mode
 ===================================================== */
 
-async function loginUser() {
-
-    if (!auth) {
-
-        showLoginMessage(
-            "Firebaseに接続できません"
-        );
-
-        return;
-
-    }
+let authMode =
+    "login";
 
 
-    const email =
-        document.getElementById(
-            "loginEmail"
-        )?.value.trim();
+function updateAuthMode() {
+
+    const title =
+        $("authMainButton");
+
+    const modeButton =
+        $("authModeButton");
 
 
-    const password =
-        document.getElementById(
-            "loginPassword"
-        )?.value;
-
-
-    if (!email || !password) {
-
-        showLoginMessage(
-            "メールアドレスとパスワードを入力してください"
-        );
-
-        return;
-
-    }
-
-
-    setLoginLoading(true);
-
-
-    try {
-
-        await signInWithEmailAndPassword(
-            auth,
-            email,
-            password
-        );
-
-
-        showLoginMessage("");
-
-    }
-    catch (error) {
-
-        console.error(
-            "ログインエラー:",
-            error
-        );
-
-
-        showLoginMessage(
-            getAuthErrorMessage(
-                error
-            )
-        );
-
-    }
-    finally {
-
-        setLoginLoading(false);
-
-    }
-
-}
-
-
-/* =====================================================
-   新規登録
-===================================================== */
-
-async function registerUser() {
-
-    if (!auth) {
-
-        showLoginMessage(
-            "Firebaseに接続できません"
-        );
-
-        return;
-
-    }
-
-
-    const email =
-        document.getElementById(
-            "loginEmail"
-        )?.value.trim();
-
-
-    const password =
-        document.getElementById(
-            "loginPassword"
-        )?.value;
-
-
-    if (!email || !password) {
-
-        showLoginMessage(
-            "メールアドレスとパスワードを入力してください"
-        );
-
-        return;
-
-    }
-
-
-    if (password.length < 6) {
-
-        showLoginMessage(
-            "パスワードは6文字以上にしてください"
-        );
+    if (!title || !modeButton) {
 
         return;
 
@@ -992,62 +683,39 @@ async function registerUser() {
 
 
     if (
-        !confirm(
-            "このメールアドレスでアカウントを作成しますか？"
-        )
+        authMode === "login"
     ) {
 
-        return;
+        title.textContent =
+            "ログイン";
+
+        modeButton.textContent =
+            "新規アカウントを作成";
+
+    }
+    else {
+
+        title.textContent =
+            "アカウントを作成";
+
+        modeButton.textContent =
+            "ログイン画面に戻る";
 
     }
 
 
-    setLoginLoading(true);
-
-
-    try {
-
-        await createUserWithEmailAndPassword(
-            auth,
-            email,
-            password
-        );
-
-
-        showLoginMessage(
-            ""
-        );
-
-    }
-    catch (error) {
-
-        console.error(
-            "新規登録エラー:",
-            error
-        );
-
-
-        showLoginMessage(
-            getAuthErrorMessage(
-                error
-            )
-        );
-
-    }
-    finally {
-
-        setLoginLoading(false);
-
-    }
+    showAuthMessage("");
 
 }
 
 
 /* =====================================================
-   Firebaseエラー日本語化
+   Firebase Auth Error
 ===================================================== */
 
-function getAuthErrorMessage(error) {
+function getAuthErrorMessage(
+    error
+) {
 
     const code =
         error?.code || "";
@@ -1095,7 +763,22 @@ function getAuthErrorMessage(error) {
             return "ネットワーク接続を確認してください。";
 
 
+        case "auth/operation-not-allowed":
+
+            return "Firebaseでメール・パスワード認証が有効になっていません。";
+
+
+        case "auth/user-disabled":
+
+            return "このアカウントは無効になっています。";
+
+
         default:
+
+            console.error(
+                "Unknown Firebase Auth error:",
+                error
+            );
 
             return (
                 "認証エラーが発生しました。"
@@ -1107,234 +790,157 @@ function getAuthErrorMessage(error) {
 
 
 /* =====================================================
-   ログイン処理中表示
+   Login / Register
 ===================================================== */
 
-function setLoginLoading(
-    loading
-) {
+async function handleAuth() {
 
-    const loadingElement =
-        document.getElementById(
-            "loginLoading"
+    if (!auth) {
+
+        showAuthMessage(
+            "Firebaseに接続できません。"
         );
-
-
-    const loginButton =
-        document.getElementById(
-            "loginButton"
-        );
-
-
-    const registerButton =
-        document.getElementById(
-            "registerButton"
-        );
-
-
-    if (loadingElement) {
-
-        loadingElement.style.display =
-            loading
-                ? "block"
-                : "none";
-
-    }
-
-
-    if (loginButton) {
-
-        loginButton.disabled =
-            loading;
-
-    }
-
-
-    if (registerButton) {
-
-        registerButton.disabled =
-            loading;
-
-    }
-
-}
-
-
-/* =====================================================
-   ログアウトボタン
-===================================================== */
-
-function createLogoutButton() {
-
-    if (!currentUser) {
 
         return;
 
     }
 
 
-    let button =
-        document.getElementById(
-            "logoutButton"
+    const email =
+        $("authEmail")?.value
+            .trim();
+
+
+    const password =
+        $("authPassword")?.value || "";
+
+
+    if (!email || !password) {
+
+        showAuthMessage(
+            "メールアドレスとパスワードを入力してください。"
         );
-
-
-    if (button) {
-
-        updateUserDisplay();
 
         return;
 
     }
 
 
-    button =
-        document.createElement(
-            "button"
+    if (
+        authMode === "register" &&
+        password.length < 6
+    ) {
+
+        showAuthMessage(
+            "パスワードは6文字以上にしてください。"
         );
-
-
-    button.id =
-        "logoutButton";
-
-
-    button.textContent =
-        "🚪 ログアウト";
-
-
-    button.style.position =
-        "fixed";
-
-    button.style.top =
-        "15px";
-
-    button.style.right =
-        "15px";
-
-    button.style.zIndex =
-        "9999";
-
-    button.style.padding =
-        "9px 13px";
-
-    button.style.border =
-        "none";
-
-    button.style.borderRadius =
-        "10px";
-
-    button.style.background =
-        "#111827";
-
-    button.style.color =
-        "white";
-
-    button.style.fontWeight =
-        "bold";
-
-    button.style.fontSize =
-        "12px";
-
-    button.style.cursor =
-        "pointer";
-
-
-    button.onclick =
-        logoutUser;
-
-
-    document.body.appendChild(
-        button
-    );
-
-
-    updateUserDisplay();
-
-}
-
-
-/* =====================================================
-   ユーザー表示
-===================================================== */
-
-function updateUserDisplay() {
-
-    if (!currentUser) {
 
         return;
 
     }
 
 
-    let element =
-        document.getElementById(
-            "userAccountDisplay"
-        );
+    setAuthLoading(true);
+
+    showAuthMessage("");
 
 
-    if (!element) {
+    try {
 
-        element =
-            document.createElement(
-                "div"
+        if (
+            authMode === "login"
+        ) {
+
+            await signInWithEmailAndPassword(
+
+                auth,
+
+                email,
+
+                password
+
             );
 
-        element.id =
-            "userAccountDisplay";
+        }
+        else {
+
+            await createUserWithEmailAndPassword(
+
+                auth,
+
+                email,
+
+                password
+
+            );
+
+        }
 
 
-        element.style.position =
-            "fixed";
+        $("authPassword").value =
+            "";
 
-        element.style.top =
-            "55px";
 
-        element.style.right =
-            "15px";
+    }
+    catch (error) {
 
-        element.style.zIndex =
-            "9998";
+        console.error(
+            "Authentication error:",
+            error
+        );
 
-        element.style.padding =
-            "5px 9px";
-
-        element.style.borderRadius =
-            "8px";
-
-        element.style.background =
-            "rgba(255,255,255,0.92)";
-
-        element.style.color =
-            "#374151";
-
-        element.style.fontSize =
-            "10px";
-
-        document.body.appendChild(
-            element
+        showAuthMessage(
+            getAuthErrorMessage(
+                error
+            )
         );
 
     }
+    finally {
 
+        setAuthLoading(false);
 
-    element.textContent =
-        currentUser.email || "";
+    }
 
 }
 
 
 /* =====================================================
-   ログアウト
+   Password Reset
 ===================================================== */
 
-async function logoutUser() {
+async function resetPassword() {
 
-    if (!auth) return;
+    if (!auth) {
+
+        showAuthMessage(
+            "Firebaseに接続できません。"
+        );
+
+        return;
+
+    }
+
+
+    const email =
+        $("authEmail")?.value
+            .trim();
+
+
+    if (!email) {
+
+        showAuthMessage(
+            "パスワードをリセットするメールアドレスを入力してください。"
+        );
+
+        return;
+
+    }
 
 
     if (
         !confirm(
-            "ログアウトしますか？"
+            `${email} にパスワード再設定メールを送信しますか？`
         )
     ) {
 
@@ -1343,17 +949,48 @@ async function logoutUser() {
     }
 
 
+    setAuthLoading(true);
+
+    showAuthMessage("");
+
+
     try {
 
-        await signOut(auth);
+        await sendPasswordResetEmail(
+
+            auth,
+
+            email
+
+        );
+
+
+        showAuthMessage(
+
+            "パスワード再設定メールを送信しました。メールを確認してください。",
+
+            true
+
+        );
 
     }
     catch (error) {
 
         console.error(
-            "ログアウトエラー:",
+            "Password reset error:",
             error
         );
+
+        showAuthMessage(
+            getAuthErrorMessage(
+                error
+            )
+        );
+
+    }
+    finally {
+
+        setAuthLoading(false);
 
     }
 
@@ -1361,76 +998,153 @@ async function logoutUser() {
 
 
 /* =====================================================
-   ログイン画面表示 / 非表示
+   Show App
 ===================================================== */
 
-function showLoginScreen() {
+function showApp() {
 
-    const overlay =
-        createLoginScreen();
+    const authScreen =
+        $("authScreen");
 
-
-    overlay.style.display =
-        "flex";
-
-
-    const logoutButton =
-        document.getElementById(
-            "logoutButton"
-        );
+    const app =
+        $("app");
 
 
-    const userDisplay =
-        document.getElementById(
-            "userAccountDisplay"
-        );
+    if (authScreen) {
 
-
-    if (logoutButton) {
-
-        logoutButton.remove();
-
-    }
-
-
-    if (userDisplay) {
-
-        userDisplay.remove();
-
-    }
-
-}
-
-
-function hideLoginScreen() {
-
-    const overlay =
-        document.getElementById(
-            "loginOverlay"
-        );
-
-
-    if (overlay) {
-
-        overlay.style.display =
+        authScreen.style.display =
             "none";
 
     }
 
+
+    if (app) {
+
+        app.classList.remove(
+            "app-hidden"
+        );
+
+        app.style.display =
+            "block";
+
+    }
+
 }
 
 
 /* =====================================================
-   Firestore保存
+   Show Login
+===================================================== */
+
+function showLogin() {
+
+    const authScreen =
+        $("authScreen");
+
+    const app =
+        $("app");
+
+
+    if (app) {
+
+        app.style.display =
+            "none";
+
+    }
+
+
+    if (authScreen) {
+
+        authScreen.style.display =
+            "flex";
+
+    }
+
+
+    const email =
+        $("authEmail");
+
+    const password =
+        $("authPassword");
+
+
+    if (email) {
+
+        email.value = "";
+
+    }
+
+
+    if (password) {
+
+        password.value = "";
+
+    }
+
+
+    showAuthMessage("");
+
+    setAuthLoading(false);
+
+}
+
+
+/* =====================================================
+   Logout
+===================================================== */
+
+async function logout() {
+
+    if (!auth) return;
+
+
+    const confirmed =
+        confirm(
+            "ログアウトしますか？"
+        );
+
+
+    if (!confirmed) {
+
+        return;
+
+    }
+
+
+    try {
+
+        await signOut(
+            auth
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            "Logout error:",
+            error
+        );
+
+        alert(
+            "ログアウトに失敗しました。"
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   Firestore Save
 ===================================================== */
 
 async function saveToCloud() {
 
-    const cloudDataRef =
+    const ref =
         getCloudDataRef();
 
 
-    if (!cloudDataRef) {
+    if (!ref) {
 
         return false;
 
@@ -1451,7 +1165,7 @@ async function saveToCloud() {
 
         await setDoc(
 
-            cloudDataRef,
+            ref,
 
             {
 
@@ -1469,11 +1183,6 @@ async function saveToCloud() {
         );
 
 
-        console.log(
-            "☁️ Firestore保存成功"
-        );
-
-
         showCloudStatus(
             "☁️ クラウド保存済み"
         );
@@ -1485,15 +1194,13 @@ async function saveToCloud() {
     catch (error) {
 
         console.error(
-            "Firestore保存エラー:",
+            "Firestore save error:",
             error
         );
-
 
         showCloudStatus(
             "📱 ローカル保存済み"
         );
-
 
         return false;
 
@@ -1508,18 +1215,18 @@ async function saveToCloud() {
 
 
 /* =====================================================
-   Firestore読み込み
+   Firestore Load
 ===================================================== */
 
 async function loadFromCloud() {
 
-    const cloudDataRef =
+    const ref =
         getCloudDataRef();
 
 
-    if (!cloudDataRef) {
+    if (!ref) {
 
-        return;
+        return false;
 
     }
 
@@ -1531,66 +1238,68 @@ async function loadFromCloud() {
 
         const snapshot =
             await getDoc(
-                cloudDataRef
+                ref
             );
 
 
-        if (snapshot.exists()) {
+        if (
+            snapshot.exists()
+        ) {
 
-            const cloud =
+            const cloudData =
                 snapshot.data();
 
 
-            if (cloud.data) {
+            if (
+                cloudData.data
+            ) {
 
                 data =
-                    cloud.data;
-
+                    cloudData.data;
 
                 normalizeData(
                     data
                 );
 
-
                 saveLocalOnly();
-
-
-                console.log(
-                    "☁️ クラウドデータ読み込み成功"
-                );
-
 
                 showCloudStatus(
                     "☁️ クラウドデータを読み込みました"
                 );
 
+                return true;
+
             }
 
         }
-        else {
 
-            /*
-                初回ログイン時。
-                現在のローカルデータを
-                ユーザー専用クラウドへ保存
-            */
 
-            await saveToCloud();
+        /*
+            初回ログイン
+        */
 
-        }
+        normalizeData(
+            data
+        );
+
+        await saveToCloud();
+
+
+        return true;
 
     }
     catch (error) {
 
         console.error(
-            "Firestore読み込みエラー:",
+            "Firestore load error:",
             error
         );
-
 
         showCloudStatus(
             "📱 オフラインモード"
         );
+
+        return false;
 
     }
     finally {
@@ -1603,17 +1312,21 @@ async function loadFromCloud() {
 
 
 /* =====================================================
-   通常保存
+   Save Data
 ===================================================== */
 
 function saveData() {
+
+    normalizeData(
+        data
+    );
 
     saveLocalOnly();
 
 
     if (
-        firebaseReady &&
         currentUser &&
+        firebaseReady &&
         !cloudLoading
     ) {
 
@@ -1628,22 +1341,24 @@ function saveData() {
 
 
 /* =====================================================
-   現在の会計
+   Current Event
 ===================================================== */
 
 function getCurrentEvent() {
 
     return data.events.find(
+
         event =>
             event.id ===
             data.currentEventId
+
     );
 
 }
 
 
 /* =====================================================
-   全画面再描画
+   Render All
 ===================================================== */
 
 function renderAll() {
@@ -1668,15 +1383,13 @@ function renderAll() {
 
 
 /* =====================================================
-   会計表示
+   Render Events
 ===================================================== */
 
 function renderEvents() {
 
     const container =
-        document.getElementById(
-            "eventList"
-        );
+        $("eventList");
 
 
     if (!container) return;
@@ -1695,25 +1408,34 @@ function renderEvents() {
 
 
             card.className =
-                "event-card " +
-                (
-                    event.id ===
-                    data.currentEventId
-                        ? "active"
-                        : ""
+                "event-card";
+
+
+            if (
+                event.id ===
+                data.currentEventId
+            ) {
+
+                card.classList.add(
+                    "active"
                 );
 
+            }
 
-            card.onclick = () => {
 
-                data.currentEventId =
-                    event.id;
+            card.addEventListener(
+                "click",
+                () => {
 
-                saveData();
+                    data.currentEventId =
+                        event.id;
 
-                renderAll();
+                    saveData();
 
-            };
+                    renderAll();
+
+                }
+            );
 
 
             const name =
@@ -1751,25 +1473,34 @@ function renderEvents() {
             deleteButton.className =
                 "delete-event";
 
+            deleteButton.type =
+                "button";
+
             deleteButton.textContent =
                 "×";
 
 
-            deleteButton.onclick =
-                e => {
+            deleteButton.addEventListener(
+                "click",
+                eventObject => {
 
-                    e.stopPropagation();
+                    eventObject.stopPropagation();
 
                     deleteEvent(
                         event.id
                     );
 
-                };
+                }
+            );
 
 
-            card.appendChild(name);
+            card.appendChild(
+                name
+            );
 
-            card.appendChild(fee);
+            card.appendChild(
+                fee
+            );
 
             card.appendChild(
                 deleteButton
@@ -1788,35 +1519,50 @@ function renderEvents() {
         getCurrentEvent();
 
 
-    if (currentEvent) {
+    const nameElement =
+        $("currentEventName");
 
-        const eventName =
-            document.getElementById(
-                "currentEventName"
-            );
-
-
-        const currentFee =
-            document.getElementById(
-                "currentFee"
-            );
+    const feeElement =
+        $("currentFee");
 
 
-        if (eventName) {
+    if (
+        currentEvent
+    ) {
 
-            eventName.textContent =
+        if (nameElement) {
+
+            nameElement.textContent =
                 currentEvent.name;
 
         }
 
 
-        if (currentFee) {
+        if (feeElement) {
 
-            currentFee.textContent =
+            feeElement.textContent =
                 "¥" +
                 Number(
                     currentEvent.fee
                 ).toLocaleString();
+
+        }
+
+    }
+    else {
+
+        if (nameElement) {
+
+            nameElement.textContent =
+                "会計を選択してください";
+
+        }
+
+
+        if (feeElement) {
+
+            feeElement.textContent =
+                "¥0";
 
         }
 
@@ -1826,7 +1572,7 @@ function renderEvents() {
 
 
 /* =====================================================
-   会計追加
+   Add Event
 ===================================================== */
 
 function addEvent() {
@@ -1840,7 +1586,11 @@ function addEvent() {
     if (
         !name ||
         !name.trim()
-    ) return;
+    ) {
+
+        return;
+
+    }
 
 
     const feeInput =
@@ -1850,8 +1600,19 @@ function addEvent() {
         );
 
 
+    if (
+        feeInput === null
+    ) {
+
+        return;
+
+    }
+
+
     const fee =
-        Number(feeInput);
+        Number(
+            feeInput
+        );
 
 
     if (
@@ -1860,7 +1621,7 @@ function addEvent() {
     ) {
 
         alert(
-            "金額を正しく入力してください"
+            "金額を正しく入力してください。"
         );
 
         return;
@@ -1876,8 +1637,7 @@ function addEvent() {
         name:
             name.trim(),
 
-        fee:
-            fee,
+        fee,
 
         members: {},
 
@@ -1905,7 +1665,7 @@ function addEvent() {
 
 
 /* =====================================================
-   会計削除
+   Delete Event
 ===================================================== */
 
 function deleteEvent(id) {
@@ -1915,7 +1675,7 @@ function deleteEvent(id) {
     ) {
 
         alert(
-            "会計は最低1つ必要です"
+            "会計は最低1つ必要です。"
         );
 
         return;
@@ -1923,27 +1683,31 @@ function deleteEvent(id) {
     }
 
 
-    const event =
+    const target =
         data.events.find(
-            e =>
-                e.id === id
+            event =>
+                event.id === id
         );
 
 
-    if (!event) return;
+    if (!target) return;
 
 
     if (
         !confirm(
-            `「${event.name}」を削除しますか？`
+            `「${target.name}」を削除しますか？`
         )
-    ) return;
+    ) {
+
+        return;
+
+    }
 
 
     data.events =
         data.events.filter(
-            e =>
-                e.id !== id
+            event =>
+                event.id !== id
         );
 
 
@@ -1965,15 +1729,78 @@ function deleteEvent(id) {
 
 
 /* =====================================================
-   グループ表示
+   Add Group
+===================================================== */
+
+function addGroup() {
+
+    const name =
+        prompt(
+            "グループ名を入力してください"
+        );
+
+
+    if (
+        !name ||
+        !name.trim()
+    ) {
+
+        return;
+
+    }
+
+
+    const colors = [
+
+        "#dbeafe",
+        "#dcfce7",
+        "#fef3c7",
+        "#fce7f3",
+        "#ede9fe",
+        "#cffafe",
+        "#ffedd5",
+        "#e2e8f0"
+
+    ];
+
+
+    const newGroup = {
+
+        id:
+            Date.now(),
+
+        name:
+            name.trim(),
+
+        color:
+            colors[
+                data.groups.length %
+                colors.length
+            ]
+
+    };
+
+
+    data.groups.push(
+        newGroup
+    );
+
+
+    saveData();
+
+    renderAll();
+
+}
+
+
+/* =====================================================
+   Render Groups
 ===================================================== */
 
 function renderGroups() {
 
     const container =
-        document.getElementById(
-            "groupList"
-        );
+        $("groupList");
 
 
     if (!container) return;
@@ -2021,8 +1848,12 @@ function renderGroups() {
             const count =
                 data.members.filter(
                     member =>
-                        member.groupId ===
-                        group.id
+                        Number(
+                            member.groupId
+                        ) ===
+                        Number(
+                            group.id
+                        )
                 ).length;
 
 
@@ -2046,33 +1877,44 @@ function renderGroups() {
             deleteButton.className =
                 "group-delete";
 
+            deleteButton.type =
+                "button";
+
             deleteButton.textContent =
                 "×";
 
 
             if (
-                group.id === 1
+                Number(group.id) === 1
             ) {
 
                 deleteButton.style.display =
                     "none";
 
             }
+            else {
+
+                deleteButton.addEventListener(
+                    "click",
+                    () => {
+
+                        deleteGroup(
+                            group.id
+                        );
+
+                    }
+                );
+
+            }
 
 
-            deleteButton.onclick =
-                () => {
+            card.appendChild(
+                color
+            );
 
-                    deleteGroup(
-                        group.id
-                    );
-
-                };
-
-
-            card.appendChild(color);
-
-            card.appendChild(name);
+            card.appendChild(
+                name
+            );
 
             card.appendChild(
                 countElement
@@ -2094,76 +1936,17 @@ function renderGroups() {
 
 
 /* =====================================================
-   グループ追加
-===================================================== */
-
-function addGroup() {
-
-    const name =
-        prompt(
-            "グループ名を入力してください"
-        );
-
-
-    if (
-        !name ||
-        !name.trim()
-    ) return;
-
-
-    const colors = [
-
-        "#dbeafe",
-        "#dcfce7",
-        "#fef3c7",
-        "#fce7f3",
-        "#ede9fe",
-        "#cffafe",
-        "#ffedd5",
-        "#e2e8f0"
-
-    ];
-
-
-    const newGroup = {
-
-        id:
-            Date.now(),
-
-        name:
-            name.trim(),
-
-        color:
-            colors[
-                data.groups.length %
-                colors.length
-            ]
-
-    };
-
-
-    data.groups.push(
-        newGroup
-    );
-
-
-    saveData();
-
-    renderAll();
-
-}
-
-
-/* =====================================================
-   グループ削除
+   Delete Group
 ===================================================== */
 
 function deleteGroup(id) {
 
-    if (id === 1) {
+    if (
+        Number(id) === 1
+    ) {
 
         alert(
-            "未所属グループは削除できません"
+            "未所属グループは削除できません。"
         );
 
         return;
@@ -2173,8 +1956,8 @@ function deleteGroup(id) {
 
     const group =
         data.groups.find(
-            g =>
-                g.id === id
+            item =>
+                item.id === id
         );
 
 
@@ -2185,14 +1968,21 @@ function deleteGroup(id) {
         !confirm(
             `「${group.name}」を削除しますか？`
         )
-    ) return;
+    ) {
+
+        return;
+
+    }
 
 
     data.members.forEach(
         member => {
 
             if (
-                member.groupId === id
+                Number(
+                    member.groupId
+                ) ===
+                Number(id)
             ) {
 
                 member.groupId = 1;
@@ -2205,9 +1995,19 @@ function deleteGroup(id) {
 
     data.groups =
         data.groups.filter(
-            group =>
-                group.id !== id
+            item =>
+                item.id !== id
         );
+
+
+    if (
+        selectedGroupFilter === id
+    ) {
+
+        selectedGroupFilter =
+            "all";
+
+    }
 
 
     saveData();
@@ -2218,19 +2018,13 @@ function deleteGroup(id) {
 
 
 /* =====================================================
-   グループフィルター
+   Render Group Filter
 ===================================================== */
-
-let selectedGroupFilter =
-    "all";
-
 
 function renderGroupFilter() {
 
     const container =
-        document.getElementById(
-            "groupFilter"
-        );
+        $("groupFilter");
 
 
     if (!container) return;
@@ -2245,29 +2039,41 @@ function renderGroupFilter() {
         );
 
 
+    allButton.type =
+        "button";
+
     allButton.className =
-        "filter-btn " +
-        (
-            selectedGroupFilter === "all"
-                ? "active"
-                : ""
+        "filter-btn";
+
+
+    if (
+        selectedGroupFilter === "all"
+    ) {
+
+        allButton.classList.add(
+            "active"
         );
+
+    }
 
 
     allButton.textContent =
         "全員";
 
 
-    allButton.onclick = () => {
+    allButton.addEventListener(
+        "click",
+        () => {
 
-        selectedGroupFilter =
-            "all";
+            selectedGroupFilter =
+                "all";
 
-        renderGroupFilter();
+            renderGroupFilter();
 
-        renderMembers();
+            renderMembers();
 
-    };
+        }
+    );
 
 
     container.appendChild(
@@ -2284,30 +2090,42 @@ function renderGroupFilter() {
                 );
 
 
+            button.type =
+                "button";
+
             button.className =
-                "filter-btn " +
-                (
-                    selectedGroupFilter ===
-                    group.id
-                        ? "active"
-                        : ""
+                "filter-btn";
+
+
+            if (
+                selectedGroupFilter ===
+                group.id
+            ) {
+
+                button.classList.add(
+                    "active"
                 );
+
+            }
 
 
             button.textContent =
                 group.name;
 
 
-            button.onclick = () => {
+            button.addEventListener(
+                "click",
+                () => {
 
-                selectedGroupFilter =
-                    group.id;
+                    selectedGroupFilter =
+                        group.id;
 
-                renderGroupFilter();
+                    renderGroupFilter();
 
-                renderMembers();
+                    renderMembers();
 
-            };
+                }
+            );
 
 
             container.appendChild(
@@ -2321,15 +2139,13 @@ function renderGroupFilter() {
 
 
 /* =====================================================
-   メンバー表示
+   Render Members
 ===================================================== */
 
 function renderMembers() {
 
     const container =
-        document.getElementById(
-            "memberList"
-        );
+        $("memberList");
 
 
     if (!container) return;
@@ -2342,7 +2158,11 @@ function renderMembers() {
         getCurrentEvent();
 
 
-    if (!event) return;
+    if (!event) {
+
+        return;
+
+    }
 
 
     let members =
@@ -2356,9 +2176,40 @@ function renderMembers() {
         members =
             members.filter(
                 member =>
-                    member.groupId ===
-                    selectedGroupFilter
+                    Number(
+                        member.groupId
+                    ) ===
+                    Number(
+                        selectedGroupFilter
+                    )
             );
+
+    }
+
+
+    if (
+        members.length === 0
+    ) {
+
+        const empty =
+            document.createElement(
+                "div"
+            );
+
+        empty.style.color =
+            "#6b7280";
+
+        empty.style.fontSize =
+            "13px";
+
+        empty.textContent =
+            "メンバーがいません。";
+
+        container.appendChild(
+            empty
+        );
+
+        return;
 
     }
 
@@ -2369,14 +2220,19 @@ function renderMembers() {
             const status =
                 event.members[
                     member.id
-                ] || "unpaid";
+                ] ||
+                "unpaid";
 
 
             const group =
                 data.groups.find(
-                    group =>
-                        group.id ===
-                        member.groupId
+                    item =>
+                        Number(
+                            item.id
+                        ) ===
+                        Number(
+                            member.groupId
+                        )
                 );
 
 
@@ -2385,23 +2241,8 @@ function renderMembers() {
                     "div"
                 );
 
-
             card.className =
                 "member-card";
-
-
-            if (group) {
-
-                card.classList.add(
-                    "group-colored"
-                );
-
-                card.style.setProperty(
-                    "--group-color",
-                    group.color
-                );
-
-            }
 
 
             if (status === "paid") {
@@ -2422,19 +2263,41 @@ function renderMembers() {
             }
 
 
-            card.onclick =
-                e => {
+            if (group) {
+
+                card.classList.add(
+                    "group-colored"
+                );
+
+                card.style.setProperty(
+                    "--group-color",
+                    group.color
+                );
+
+            }
+
+
+            card.addEventListener(
+                "click",
+                eventObject => {
 
                     if (
-                        e.target.tagName ===
-                        "BUTTON"
-                    ) return;
+                        eventObject.target.closest(
+                            "button"
+                        )
+                    ) {
+
+                        return;
+
+                    }
+
 
                     togglePayment(
                         member.id
                     );
 
-                };
+                }
+            );
 
 
             if (group) {
@@ -2473,7 +2336,10 @@ function renderMembers() {
             name.textContent =
                 member.name;
 
-            card.appendChild(name);
+
+            card.appendChild(
+                name
+            );
 
 
             const statusText =
@@ -2485,13 +2351,17 @@ function renderMembers() {
                 "member-status";
 
 
-            if (status === "paid") {
+            if (
+                status === "paid"
+            ) {
 
                 statusText.textContent =
                     "✓ 支払い済み";
 
             }
-            else if (status === "absent") {
+            else if (
+                status === "absent"
+            ) {
 
                 statusText.textContent =
                     "— 不参加";
@@ -2519,124 +2389,102 @@ function renderMembers() {
                 "member-actions";
 
 
-            const editButton =
-                document.createElement(
-                    "button"
+            const renameButton =
+                createMemberButton(
+                    "名前変更",
+                    "group-btn",
+                    () =>
+                        renameMember(
+                            member.id
+                        )
                 );
 
-            editButton.className =
-                "group-btn";
 
-            editButton.textContent =
-                "名前変更";
+            const attendanceButton =
+                createMemberButton(
 
-            editButton.onclick =
-                () =>
-                    renameMember(
-                        member.id
-                    );
+                    status === "absent"
+                        ? "参加に戻す"
+                        : "不参加",
 
+                    "absent-btn",
 
-            const absentButton =
-                document.createElement(
-                    "button"
+                    () =>
+                        toggleAttendance(
+                            member.id
+                        )
+
                 );
-
-            absentButton.className =
-                "absent-btn";
-
-            absentButton.textContent =
-                status === "absent"
-                    ? "参加に戻す"
-                    : "不参加";
-
-            absentButton.onclick =
-                () =>
-                    toggleAttendance(
-                        member.id
-                    );
 
 
             const groupButton =
-                document.createElement(
-                    "button"
+                createMemberButton(
+
+                    "グループ",
+
+                    "group-btn",
+
+                    () =>
+                        changeMemberGroup(
+                            member.id
+                        )
+
                 );
-
-            groupButton.className =
-                "group-btn";
-
-            groupButton.textContent =
-                "グループ";
-
-            groupButton.onclick =
-                () =>
-                    changeMemberGroup(
-                        member.id
-                    );
 
 
             const upButton =
-                document.createElement(
-                    "button"
+                createMemberButton(
+
+                    "↑",
+
+                    "sort-btn",
+
+                    () =>
+                        moveMember(
+                            member.id,
+                            -1
+                        )
+
                 );
-
-            upButton.className =
-                "sort-btn";
-
-            upButton.textContent =
-                "↑";
-
-            upButton.onclick =
-                () =>
-                    moveMember(
-                        member.id,
-                        -1
-                    );
 
 
             const downButton =
-                document.createElement(
-                    "button"
+                createMemberButton(
+
+                    "↓",
+
+                    "sort-btn",
+
+                    () =>
+                        moveMember(
+                            member.id,
+                            1
+                        )
+
                 );
-
-            downButton.className =
-                "sort-btn";
-
-            downButton.textContent =
-                "↓";
-
-            downButton.onclick =
-                () =>
-                    moveMember(
-                        member.id,
-                        1
-                    );
 
 
             const deleteButton =
-                document.createElement(
-                    "button"
+                createMemberButton(
+
+                    "削除",
+
+                    "delete-member",
+
+                    () =>
+                        deleteMember(
+                            member.id
+                        )
+
                 );
-
-            deleteButton.className =
-                "delete-member";
-
-            deleteButton.textContent =
-                "削除";
-
-            deleteButton.onclick =
-                () =>
-                    deleteMember(
-                        member.id
-                    );
 
 
             actions.appendChild(
-                editButton
+                renameButton
             );
 
             actions.appendChild(
-                absentButton
+                attendanceButton
             );
 
             actions.appendChild(
@@ -2672,431 +2520,48 @@ function renderMembers() {
 
 
 /* =====================================================
-   名前変更
+   Create Member Button
 ===================================================== */
 
-function renameMember(memberId) {
-
-    const member =
-        data.members.find(
-            m =>
-                m.id === memberId
-        );
-
-
-    if (!member) return;
-
-
-    const newName =
-        prompt(
-            "新しい名前を入力してください",
-            member.name
-        );
-
-
-    if (
-        !newName ||
-        !newName.trim()
-    ) return;
-
-
-    member.name =
-        newName.trim();
-
-
-    saveData();
-
-    renderAll();
-
-}
-
-
-/* =====================================================
-   メンバー順番変更
-===================================================== */
-
-function moveMember(
-    memberId,
-    direction
+function createMemberButton(
+    text,
+    className,
+    handler
 ) {
 
-    const index =
-        data.members.findIndex(
-            member =>
-                member.id === memberId
+    const button =
+        document.createElement(
+            "button"
         );
 
+    button.type =
+        "button";
 
-    if (index === -1) return;
+    button.className =
+        className;
 
+    button.textContent =
+        text;
 
-    const newIndex =
-        index + direction;
+    button.addEventListener(
+        "click",
+        event => {
 
+            event.stopPropagation();
 
-    if (
-        newIndex < 0 ||
-        newIndex >= data.members.length
-    ) {
-
-        return;
-
-    }
-
-
-    [
-        data.members[index],
-        data.members[newIndex]
-    ] =
-    [
-        data.members[newIndex],
-        data.members[index]
-    ];
-
-
-    saveData();
-
-    renderMembers();
-
-}
-
-
-/* =====================================================
-   名前順
-===================================================== */
-
-function sortMembersByName() {
-
-    if (
-        !confirm(
-            "メンバーを名前順に並べ替えますか？"
-        )
-    ) return;
-
-
-    data.members.sort(
-        (a, b) =>
-            a.name.localeCompare(
-                b.name,
-                "ja"
-            )
-    );
-
-
-    saveData();
-
-    renderMembers();
-
-}
-
-
-/* =====================================================
-   一括不参加
-===================================================== */
-
-function bulkAbsent() {
-
-    const event =
-        getCurrentEvent();
-
-
-    if (!event) return;
-
-
-    const targetMembers =
-        selectedGroupFilter === "all"
-
-            ? [...data.members]
-
-            : data.members.filter(
-                member =>
-                    member.groupId ===
-                    selectedGroupFilter
-            );
-
-
-    if (
-        targetMembers.length === 0
-    ) {
-
-        alert(
-            "対象となるメンバーがいません"
-        );
-
-        return;
-
-    }
-
-
-    const targetName =
-        selectedGroupFilter === "all"
-
-            ? "全員"
-
-            : (
-                data.groups.find(
-                    group =>
-                        group.id ===
-                        selectedGroupFilter
-                )?.name ||
-                "選択グループ"
-            );
-
-
-    if (
-        !confirm(
-            `${targetName}を一括で不参加にしますか？`
-        )
-    ) return;
-
-
-    targetMembers.forEach(
-        member => {
-
-            event.members[
-                member.id
-            ] = "absent";
+            handler();
 
         }
     );
 
 
-    saveData();
-
-    renderMembers();
-
-    updateStats();
+    return button;
 
 }
 
 
 /* =====================================================
-   全員参加
-===================================================== */
-
-function bulkPresent() {
-
-    const event =
-        getCurrentEvent();
-
-
-    if (!event) return;
-
-
-    const targetMembers =
-        selectedGroupFilter === "all"
-
-            ? [...data.members]
-
-            : data.members.filter(
-                member =>
-                    member.groupId ===
-                    selectedGroupFilter
-            );
-
-
-    if (
-        targetMembers.length === 0
-    ) return;
-
-
-    if (
-        !confirm(
-            "対象メンバーを参加に戻しますか？"
-        )
-    ) return;
-
-
-    targetMembers.forEach(
-        member => {
-
-            event.members[
-                member.id
-            ] = "unpaid";
-
-        }
-    );
-
-
-    saveData();
-
-    renderMembers();
-
-    updateStats();
-
-}
-
-
-/* =====================================================
-   グループ変更
-===================================================== */
-
-function changeMemberGroup(memberId) {
-
-    const member =
-        data.members.find(
-            m =>
-                m.id === memberId
-        );
-
-
-    if (!member) return;
-
-
-    if (
-        data.groups.length <= 1
-    ) {
-
-        alert(
-            "先にグループを追加してください"
-        );
-
-        return;
-
-    }
-
-
-    let message =
-        "所属するグループを番号で選択してください\n\n";
-
-
-    data.groups.forEach(
-        (group, index) => {
-
-            message +=
-                `${index + 1}. ${group.name}\n`;
-
-        }
-    );
-
-
-    const answer =
-        prompt(message);
-
-
-    if (!answer) return;
-
-
-    const index =
-        Number(answer) - 1;
-
-
-    if (
-        !Number.isInteger(index) ||
-        !data.groups[index]
-    ) {
-
-        alert(
-            "正しい番号を入力してください"
-        );
-
-        return;
-
-    }
-
-
-    member.groupId =
-        data.groups[index].id;
-
-
-    saveData();
-
-    renderAll();
-
-}
-
-
-/* =====================================================
-   支払い
-===================================================== */
-
-function togglePayment(memberId) {
-
-    const event =
-        getCurrentEvent();
-
-
-    if (!event) return;
-
-
-    const current =
-        event.members[
-            memberId
-        ] || "unpaid";
-
-
-    if (
-        current === "absent"
-    ) {
-
-        alert(
-            "先に「参加に戻す」を押してください"
-        );
-
-        return;
-
-    }
-
-
-    event.members[
-        memberId
-    ] =
-        current === "unpaid"
-            ? "paid"
-            : "unpaid";
-
-
-    saveData();
-
-    renderMembers();
-
-    updateStats();
-
-    renderFinance();
-
-}
-
-
-/* =====================================================
-   参加 / 不参加
-===================================================== */
-
-function toggleAttendance(memberId) {
-
-    const event =
-        getCurrentEvent();
-
-
-    if (!event) return;
-
-
-    const current =
-        event.members[
-            memberId
-        ] || "unpaid";
-
-
-    event.members[
-        memberId
-    ] =
-        current === "absent"
-            ? "unpaid"
-            : "absent";
-
-
-    saveData();
-
-    renderMembers();
-
-    updateStats();
-
-    renderFinance();
-
-}
-
-
-/* =====================================================
-   メンバー追加
+   Add Member
 ===================================================== */
 
 function addMember() {
@@ -3110,7 +2575,11 @@ function addMember() {
     if (
         !name ||
         !name.trim()
-    ) return;
+    ) {
+
+        return;
+
+    }
 
 
     const newMember = {
@@ -3135,15 +2604,19 @@ function addMember() {
     data.events.forEach(
         event => {
 
-            if (!event.members) {
+            if (
+                !event.members
+            ) {
 
                 event.members = {};
 
             }
 
+
             event.members[
                 newMember.id
-            ] = "unpaid";
+            ] =
+                "unpaid";
 
         }
     );
@@ -3157,15 +2630,63 @@ function addMember() {
 
 
 /* =====================================================
-   メンバー削除
+   Rename Member
 ===================================================== */
 
-function deleteMember(id) {
+function renameMember(
+    memberId
+) {
 
     const member =
         data.members.find(
-            m =>
-                m.id === id
+            item =>
+                item.id === memberId
+        );
+
+
+    if (!member) return;
+
+
+    const name =
+        prompt(
+            "新しい名前を入力してください",
+            member.name
+        );
+
+
+    if (
+        !name ||
+        !name.trim()
+    ) {
+
+        return;
+
+    }
+
+
+    member.name =
+        name.trim();
+
+
+    saveData();
+
+    renderAll();
+
+}
+
+
+/* =====================================================
+   Delete Member
+===================================================== */
+
+function deleteMember(
+    id
+) {
+
+    const member =
+        data.members.find(
+            item =>
+                item.id === id
         );
 
 
@@ -3176,20 +2697,26 @@ function deleteMember(id) {
         !confirm(
             `${member.name}を削除しますか？`
         )
-    ) return;
+    ) {
+
+        return;
+
+    }
 
 
     data.members =
         data.members.filter(
-            m =>
-                m.id !== id
+            item =>
+                item.id !== id
         );
 
 
     data.events.forEach(
         event => {
 
-            if (event.members) {
+            if (
+                event.members
+            ) {
 
                 delete event.members[id];
 
@@ -3207,7 +2734,435 @@ function deleteMember(id) {
 
 
 /* =====================================================
-   統計
+   Move Member
+===================================================== */
+
+function moveMember(
+    memberId,
+    direction
+) {
+
+    const index =
+        data.members.findIndex(
+            member =>
+                member.id ===
+                memberId
+        );
+
+
+    if (index === -1) {
+
+        return;
+
+    }
+
+
+    const newIndex =
+        index + direction;
+
+
+    if (
+        newIndex < 0 ||
+        newIndex >= data.members.length
+    ) {
+
+        return;
+
+    }
+
+
+    const temp =
+        data.members[index];
+
+
+    data.members[index] =
+        data.members[newIndex];
+
+
+    data.members[newIndex] =
+        temp;
+
+
+    saveData();
+
+    renderMembers();
+
+}
+
+
+/* =====================================================
+   Sort Members
+===================================================== */
+
+function sortMembersByName() {
+
+    if (
+        !confirm(
+            "メンバーを名前順に並べ替えますか？"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    data.members.sort(
+        (a, b) =>
+            a.name.localeCompare(
+                b.name,
+                "ja"
+            )
+    );
+
+
+    saveData();
+
+    renderMembers();
+
+}
+
+
+/* =====================================================
+   Change Group
+===================================================== */
+
+function changeMemberGroup(
+    memberId
+) {
+
+    const member =
+        data.members.find(
+            item =>
+                item.id ===
+                memberId
+        );
+
+
+    if (!member) return;
+
+
+    if (
+        data.groups.length <= 1
+    ) {
+
+        alert(
+            "先にグループを追加してください。"
+        );
+
+        return;
+
+    }
+
+
+    let message =
+        "所属するグループを番号で選択してください\n\n";
+
+
+    data.groups.forEach(
+        (group, index) => {
+
+            message +=
+                `${index + 1}. ${group.name}\n`;
+
+        }
+    );
+
+
+    const answer =
+        prompt(
+            message
+        );
+
+
+    if (!answer) return;
+
+
+    const index =
+        Number(answer) - 1;
+
+
+    if (
+        !Number.isInteger(index) ||
+        !data.groups[index]
+    ) {
+
+        alert(
+            "正しい番号を入力してください。"
+        );
+
+        return;
+
+    }
+
+
+    member.groupId =
+        data.groups[index].id;
+
+
+    saveData();
+
+    renderAll();
+
+}
+
+
+/* =====================================================
+   Toggle Payment
+===================================================== */
+
+function togglePayment(
+    memberId
+) {
+
+    const event =
+        getCurrentEvent();
+
+
+    if (!event) return;
+
+
+    const current =
+        event.members[
+            memberId
+        ] ||
+        "unpaid";
+
+
+    if (
+        current === "absent"
+    ) {
+
+        alert(
+            "先に「参加に戻す」を押してください。"
+        );
+
+        return;
+
+    }
+
+
+    event.members[
+        memberId
+    ] =
+        current === "paid"
+            ? "unpaid"
+            : "paid";
+
+
+    saveData();
+
+    renderMembers();
+
+    updateStats();
+
+    renderFinance();
+
+}
+
+
+/* =====================================================
+   Toggle Attendance
+===================================================== */
+
+function toggleAttendance(
+    memberId
+) {
+
+    const event =
+        getCurrentEvent();
+
+
+    if (!event) return;
+
+
+    const current =
+        event.members[
+            memberId
+        ] ||
+        "unpaid";
+
+
+    event.members[
+        memberId
+    ] =
+        current === "absent"
+            ? "unpaid"
+            : "absent";
+
+
+    saveData();
+
+    renderMembers();
+
+    updateStats();
+
+    renderFinance();
+
+}
+
+
+/* =====================================================
+   Bulk Absent
+===================================================== */
+
+function bulkAbsent() {
+
+    const event =
+        getCurrentEvent();
+
+
+    if (!event) return;
+
+
+    const members =
+        selectedGroupFilter === "all"
+
+            ? [...data.members]
+
+            : data.members.filter(
+                member =>
+                    Number(
+                        member.groupId
+                    ) ===
+                    Number(
+                        selectedGroupFilter
+                    )
+            );
+
+
+    if (
+        members.length === 0
+    ) {
+
+        alert(
+            "対象となるメンバーがいません。"
+        );
+
+        return;
+
+    }
+
+
+    const targetName =
+        selectedGroupFilter === "all"
+
+            ? "全員"
+
+            : (
+                data.groups.find(
+                    group =>
+                        Number(
+                            group.id
+                        ) ===
+                        Number(
+                            selectedGroupFilter
+                        )
+                )?.name ||
+                "選択グループ"
+            );
+
+
+    if (
+        !confirm(
+            `${targetName}を一括で不参加にしますか？`
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    members.forEach(
+        member => {
+
+            event.members[
+                member.id
+            ] =
+                "absent";
+
+        }
+    );
+
+
+    saveData();
+
+    renderAll();
+
+}
+
+
+/* =====================================================
+   Bulk Present
+===================================================== */
+
+function bulkPresent() {
+
+    const event =
+        getCurrentEvent();
+
+
+    if (!event) return;
+
+
+    const members =
+        selectedGroupFilter === "all"
+
+            ? [...data.members]
+
+            : data.members.filter(
+                member =>
+                    Number(
+                        member.groupId
+                    ) ===
+                    Number(
+                        selectedGroupFilter
+                    )
+            );
+
+
+    if (
+        members.length === 0
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        !confirm(
+            "対象メンバーを参加に戻しますか？"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    members.forEach(
+        member => {
+
+            event.members[
+                member.id
+            ] =
+                "unpaid";
+
+        }
+    );
+
+
+    saveData();
+
+    renderAll();
+
+}
+
+
+/* =====================================================
+   Update Stats
 ===================================================== */
 
 function updateStats() {
@@ -3220,8 +3175,11 @@ function updateStats() {
 
 
     let participants = 0;
+
     let paid = 0;
+
     let unpaid = 0;
+
     let absent = 0;
 
 
@@ -3231,10 +3189,13 @@ function updateStats() {
             const status =
                 event.members[
                     member.id
-                ] || "unpaid";
+                ] ||
+                "unpaid";
 
 
-            if (status === "absent") {
+            if (
+                status === "absent"
+            ) {
 
                 absent++;
 
@@ -3244,7 +3205,9 @@ function updateStats() {
                 participants++;
 
 
-                if (status === "paid") {
+                if (
+                    status === "paid"
+                ) {
 
                     paid++;
 
@@ -3263,86 +3226,83 @@ function updateStats() {
 
     const collected =
         paid *
-        Number(event.fee || 0);
+        Number(
+            event.fee || 0
+        );
 
 
     const remaining =
         unpaid *
-        Number(event.fee || 0);
-
-
-    const participantElement =
-        document.getElementById(
-            "participantCount"
+        Number(
+            event.fee || 0
         );
 
 
-    const paidElement =
-        document.getElementById(
-            "paidCount"
-        );
+    setText(
+        "participantCount",
+        participants + "人"
+    );
 
 
-    const unpaidElement =
-        document.getElementById(
-            "unpaidCount"
-        );
+    setText(
+        "paidCount",
+        paid + "人"
+    );
 
 
-    const absentElement =
-        document.getElementById(
-            "absentCount"
-        );
+    setText(
+        "unpaidCount",
+        unpaid + "人"
+    );
 
 
-    const collectedElement =
-        document.getElementById(
-            "collectedMoney"
-        );
+    setText(
+        "absentCount",
+        absent + "人"
+    );
 
 
-    const remainingElement =
-        document.getElementById(
-            "remainingMoney"
-        );
+    setText(
+        "collectedMoney",
+        "¥" +
+        collected.toLocaleString()
+    );
 
 
-    if (participantElement)
-        participantElement.textContent =
-            participants + "人";
-
-
-    if (paidElement)
-        paidElement.textContent =
-            paid + "人";
-
-
-    if (unpaidElement)
-        unpaidElement.textContent =
-            unpaid + "人";
-
-
-    if (absentElement)
-        absentElement.textContent =
-            absent + "人";
-
-
-    if (collectedElement)
-        collectedElement.textContent =
-            "¥" +
-            collected.toLocaleString();
-
-
-    if (remainingElement)
-        remainingElement.textContent =
-            "¥" +
-            remaining.toLocaleString();
+    setText(
+        "remainingMoney",
+        "¥" +
+        remaining.toLocaleString()
+    );
 
 }
 
 
 /* =====================================================
-   収入追加
+   Set Text
+===================================================== */
+
+function setText(
+    id,
+    value
+) {
+
+    const element =
+        $(id);
+
+
+    if (element) {
+
+        element.textContent =
+            value;
+
+    }
+
+}
+
+
+/* =====================================================
+   Add Income
 ===================================================== */
 
 function addIncome() {
@@ -3363,15 +3323,30 @@ function addIncome() {
     if (
         !name ||
         !name.trim()
-    ) return;
+    ) {
+
+        return;
+
+    }
+
+
+    const input =
+        prompt(
+            "金額を入力してください"
+        );
+
+
+    if (
+        input === null
+    ) {
+
+        return;
+
+    }
 
 
     const amount =
-        Number(
-            prompt(
-                "金額を入力してください"
-            )
-        );
+        Number(input);
 
 
     if (
@@ -3380,7 +3355,7 @@ function addIncome() {
     ) {
 
         alert(
-            "正しい金額を入力してください"
+            "正しい金額を入力してください。"
         );
 
         return;
@@ -3396,8 +3371,7 @@ function addIncome() {
         name:
             name.trim(),
 
-        amount:
-            amount,
+        amount,
 
         date:
             new Date()
@@ -3412,11 +3386,13 @@ function addIncome() {
 
     renderFinance();
 
+    updateOverallFinance();
+
 }
 
 
 /* =====================================================
-   支出追加
+   Add Expense
 ===================================================== */
 
 function addExpense() {
@@ -3437,15 +3413,30 @@ function addExpense() {
     if (
         !name ||
         !name.trim()
-    ) return;
+    ) {
+
+        return;
+
+    }
+
+
+    const input =
+        prompt(
+            "金額を入力してください"
+        );
+
+
+    if (
+        input === null
+    ) {
+
+        return;
+
+    }
 
 
     const amount =
-        Number(
-            prompt(
-                "金額を入力してください"
-            )
-        );
+        Number(input);
 
 
     if (
@@ -3454,7 +3445,7 @@ function addExpense() {
     ) {
 
         alert(
-            "正しい金額を入力してください"
+            "正しい金額を入力してください。"
         );
 
         return;
@@ -3470,8 +3461,7 @@ function addExpense() {
         name:
             name.trim(),
 
-        amount:
-            amount,
+        amount,
 
         date:
             new Date()
@@ -3486,11 +3476,13 @@ function addExpense() {
 
     renderFinance();
 
+    updateOverallFinance();
+
 }
 
 
 /* =====================================================
-   会計表示
+   Render Finance
 ===================================================== */
 
 function renderFinance() {
@@ -3502,42 +3494,60 @@ function renderFinance() {
     if (!event) return;
 
 
-    if (!event.income)
+    if (
+        !Array.isArray(
+            event.income
+        )
+    ) {
+
         event.income = [];
 
+    }
 
-    if (!event.expenses)
+
+    if (
+        !Array.isArray(
+            event.expenses
+        )
+    ) {
+
         event.expenses = [];
+
+    }
 
 
     const participationList =
-        document.getElementById(
-            "participationIncomeList"
-        );
-
+        $("participationIncomeList");
 
     const incomeList =
-        document.getElementById(
-            "incomeList"
-        );
-
+        $("incomeList");
 
     const expenseList =
-        document.getElementById(
-            "expenseList"
-        );
+        $("expenseList");
 
 
-    if (participationList)
-        participationList.innerHTML = "";
+    if (participationList) {
+
+        participationList.innerHTML =
+            "";
+
+    }
 
 
-    if (incomeList)
-        incomeList.innerHTML = "";
+    if (incomeList) {
+
+        incomeList.innerHTML =
+            "";
+
+    }
 
 
-    if (expenseList)
-        expenseList.innerHTML = "";
+    if (expenseList) {
+
+        expenseList.innerHTML =
+            "";
+
+    }
 
 
     let paidCount = 0;
@@ -3548,8 +3558,13 @@ function renderFinance() {
     ).forEach(
         ([memberId, status]) => {
 
-            if (status !== "paid")
+            if (
+                status !== "paid"
+            ) {
+
                 return;
+
+            }
 
 
             paidCount++;
@@ -3557,111 +3572,118 @@ function renderFinance() {
 
             const member =
                 data.members.find(
-                    m =>
-                        String(m.id) ===
-                        String(memberId)
+                    item =>
+                        String(
+                            item.id
+                        ) ===
+                        String(
+                            memberId
+                        )
                 );
 
 
             if (
-                participationList &&
-                member
+                !member ||
+                !participationList
             ) {
 
-                const item =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                item.className =
-                    "finance-item";
-
-
-                const left =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                left.className =
-                    "finance-item-left";
-
-
-                const name =
-                    document.createElement(
-                        "span"
-                    );
-
-
-                name.className =
-                    "finance-item-name";
-
-
-                name.textContent =
-                    member.name;
-
-
-                const date =
-                    document.createElement(
-                        "span"
-                    );
-
-
-                date.className =
-                    "finance-item-date";
-
-
-                date.textContent =
-                    "参加費";
-
-
-                left.appendChild(name);
-
-                left.appendChild(date);
-
-
-                const right =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                right.className =
-                    "finance-item-right";
-
-
-                const amount =
-                    document.createElement(
-                        "span"
-                    );
-
-
-                amount.className =
-                    "finance-item-amount income-amount";
-
-
-                amount.textContent =
-                    "+ ¥" +
-                    Number(event.fee)
-                        .toLocaleString();
-
-
-                right.appendChild(
-                    amount
-                );
-
-
-                item.appendChild(left);
-
-                item.appendChild(right);
-
-
-                participationList.appendChild(
-                    item
-                );
+                return;
 
             }
+
+
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+            item.className =
+                "finance-item";
+
+
+            const left =
+                document.createElement(
+                    "div"
+                );
+
+            left.className =
+                "finance-item-left";
+
+
+            const name =
+                document.createElement(
+                    "span"
+                );
+
+            name.className =
+                "finance-item-name";
+
+            name.textContent =
+                member.name;
+
+
+            const date =
+                document.createElement(
+                    "span"
+                );
+
+            date.className =
+                "finance-item-date";
+
+            date.textContent =
+                "参加費";
+
+
+            left.appendChild(
+                name
+            );
+
+            left.appendChild(
+                date
+            );
+
+
+            const right =
+                document.createElement(
+                    "div"
+                );
+
+            right.className =
+                "finance-item-right";
+
+
+            const amount =
+                document.createElement(
+                    "span"
+                );
+
+            amount.className =
+                "finance-item-amount income-amount";
+
+            amount.textContent =
+                "+ ¥" +
+                Number(
+                    event.fee
+                ).toLocaleString();
+
+
+            right.appendChild(
+                amount
+            );
+
+
+            item.appendChild(
+                left
+            );
+
+            item.appendChild(
+                right
+            );
+
+
+            participationList.appendChild(
+                item
+            );
 
         }
     );
@@ -3670,7 +3692,9 @@ function renderFinance() {
     const participationIncome =
         paidCount *
         (
-            Number(event.fee) || 0
+            Number(
+                event.fee
+            ) || 0
         );
 
 
@@ -3681,16 +3705,20 @@ function renderFinance() {
         item => {
 
             otherIncome +=
-                Number(item.amount) || 0;
+                Number(
+                    item.amount
+                ) || 0;
 
 
             if (incomeList) {
 
                 incomeList.appendChild(
+
                     createFinanceItem(
                         item,
                         "income"
                     )
+
                 );
 
             }
@@ -3706,16 +3734,20 @@ function renderFinance() {
         item => {
 
             expenseTotal +=
-                Number(item.amount) || 0;
+                Number(
+                    item.amount
+                ) || 0;
 
 
             if (expenseList) {
 
                 expenseList.appendChild(
+
                     createFinanceItem(
                         item,
                         "expense"
                     )
+
                 );
 
             }
@@ -3724,71 +3756,60 @@ function renderFinance() {
     );
 
 
-    const totalIncome =
-        participationIncome +
-        otherIncome;
-
-
     const balance =
-        totalIncome -
+        participationIncome +
+        otherIncome -
         expenseTotal;
 
 
-    const participationElement =
-        document.getElementById(
-            "participationIncomeTotal"
-        );
+    setText(
+
+        "participationIncomeTotal",
+
+        "¥" +
+        participationIncome
+            .toLocaleString()
+
+    );
 
 
-    const otherIncomeElement =
-        document.getElementById(
-            "otherIncomeTotal"
-        );
+    setText(
+
+        "otherIncomeTotal",
+
+        "¥" +
+        otherIncome
+            .toLocaleString()
+
+    );
 
 
-    const expenseElement =
-        document.getElementById(
-            "expenseTotal"
-        );
+    setText(
+
+        "expenseTotal",
+
+        "¥" +
+        expenseTotal
+            .toLocaleString()
+
+    );
 
 
-    const balanceElement =
-        document.getElementById(
-            "balanceTotal"
-        );
+    setText(
 
+        "balanceTotal",
 
-    if (participationElement)
-        participationElement.textContent =
-            "¥" +
-            participationIncome.toLocaleString();
+        "¥" +
+        balance
+            .toLocaleString()
 
-
-    if (otherIncomeElement)
-        otherIncomeElement.textContent =
-            "¥" +
-            otherIncome.toLocaleString();
-
-
-    if (expenseElement)
-        expenseElement.textContent =
-            "¥" +
-            expenseTotal.toLocaleString();
-
-
-    if (balanceElement)
-        balanceElement.textContent =
-            "¥" +
-            balance.toLocaleString();
-
-
-    updateOverallFinance();
+    );
 
 }
 
 
 /* =====================================================
-   収支項目
+   Finance Item
 ===================================================== */
 
 function createFinanceItem(
@@ -3801,7 +3822,6 @@ function createFinanceItem(
             "div"
         );
 
-
     element.className =
         "finance-item";
 
@@ -3810,7 +3830,6 @@ function createFinanceItem(
         document.createElement(
             "div"
         );
-
 
     left.className =
         "finance-item-left";
@@ -3821,10 +3840,8 @@ function createFinanceItem(
             "span"
         );
 
-
     name.className =
         "finance-item-name";
-
 
     name.textContent =
         item.name;
@@ -3835,25 +3852,26 @@ function createFinanceItem(
             "span"
         );
 
-
     date.className =
         "finance-item-date";
-
 
     date.textContent =
         item.date;
 
 
-    left.appendChild(name);
+    left.appendChild(
+        name
+    );
 
-    left.appendChild(date);
+    left.appendChild(
+        date
+    );
 
 
     const right =
         document.createElement(
             "div"
         );
-
 
     right.className =
         "finance-item-right";
@@ -3863,7 +3881,6 @@ function createFinanceItem(
         document.createElement(
             "span"
         );
-
 
     amount.className =
         "finance-item-amount " +
@@ -3880,8 +3897,9 @@ function createFinanceItem(
                 ? "+ ¥"
                 : "- ¥"
         ) +
-        Number(item.amount)
-            .toLocaleString();
+        Number(
+            item.amount
+        ).toLocaleString();
 
 
     const deleteButton =
@@ -3889,16 +3907,18 @@ function createFinanceItem(
             "button"
         );
 
+    deleteButton.type =
+        "button";
 
     deleteButton.className =
         "delete-finance";
-
 
     deleteButton.textContent =
         "×";
 
 
-    deleteButton.onclick =
+    deleteButton.addEventListener(
+        "click",
         () => {
 
             deleteFinanceItem(
@@ -3906,19 +3926,26 @@ function createFinanceItem(
                 item.id
             );
 
-        };
+        }
+    );
 
 
-    right.appendChild(amount);
+    right.appendChild(
+        amount
+    );
 
     right.appendChild(
         deleteButton
     );
 
 
-    element.appendChild(left);
+    element.appendChild(
+        left
+    );
 
-    element.appendChild(right);
+    element.appendChild(
+        right
+    );
 
 
     return element;
@@ -3927,7 +3954,7 @@ function createFinanceItem(
 
 
 /* =====================================================
-   収支削除
+   Delete Finance Item
 ===================================================== */
 
 function deleteFinanceItem(
@@ -3942,7 +3969,9 @@ function deleteFinanceItem(
     if (!event) return;
 
 
-    if (type === "income") {
+    if (
+        type === "income"
+    ) {
 
         event.income =
             event.income.filter(
@@ -3966,335 +3995,13 @@ function deleteFinanceItem(
 
     renderFinance();
 
-}
-
-
-/* =====================================================
-   計算機
-===================================================== */
-
-function calculateCustom() {
-
-    const peopleElement =
-        document.getElementById(
-            "calcPeople"
-        );
-
-
-    const totalElement =
-        document.getElementById(
-            "calcTotal"
-        );
-
-
-    const resultElement =
-        document.getElementById(
-            "calcPerPerson"
-        );
-
-
-    if (
-        !peopleElement ||
-        !totalElement ||
-        !resultElement
-    ) return;
-
-
-    const people =
-        Number(
-            peopleElement.value
-        );
-
-
-    const total =
-        Number(
-            totalElement.value
-        );
-
-
-    let result = 0;
-
-
-    if (people > 0) {
-
-        result =
-            Math.ceil(
-                total / people
-            );
-
-    }
-
-
-    resultElement.textContent =
-        "¥" +
-        result.toLocaleString();
+    updateOverallFinance();
 
 }
 
 
 /* =====================================================
-   現在の会計リセット
-===================================================== */
-
-function resetCurrentEvent() {
-
-    const event =
-        getCurrentEvent();
-
-
-    if (!event) return;
-
-
-    if (
-        !confirm(
-            `「${event.name}」の支払い状況を全て未払いに戻しますか？`
-        )
-    ) return;
-
-
-    event.members = {};
-
-
-    saveData();
-
-    renderMembers();
-
-    updateStats();
-
-    renderFinance();
-
-}
-
-
-/* =====================================================
-   全データ削除
-===================================================== */
-
-async function resetAllData() {
-
-    if (
-        !confirm(
-            "全てのデータを削除します。\n本当に削除しますか？"
-        )
-    ) return;
-
-
-    data =
-        structuredClone(
-            DEFAULT_DATA
-        );
-
-
-    saveLocalOnly();
-
-
-    const cloudDataRef =
-        getCloudDataRef();
-
-
-    if (cloudDataRef) {
-
-        try {
-
-            await setDoc(
-
-                cloudDataRef,
-
-                {
-
-                    data:
-                        structuredClone(
-                            DEFAULT_DATA
-                        ),
-
-                    updatedAt:
-                        new Date()
-                            .toISOString()
-
-                }
-
-            );
-
-        }
-        catch (error) {
-
-            console.error(
-                "Firebaseリセットエラー:",
-                error
-            );
-
-        }
-
-    }
-
-
-    location.reload();
-
-}
-
-
-/* =====================================================
-   バックアップ
-===================================================== */
-
-function exportData() {
-
-    const json =
-        JSON.stringify(
-            data,
-            null,
-            2
-        );
-
-
-    const blob =
-        new Blob(
-            [json],
-            {
-                type:
-                    "application/json"
-            }
-        );
-
-
-    const url =
-        URL.createObjectURL(
-            blob
-        );
-
-
-    const a =
-        document.createElement(
-            "a"
-        );
-
-
-    a.href =
-        url;
-
-
-    a.download =
-        "CircleAccounting_backup.json";
-
-
-    document.body.appendChild(a);
-
-    a.click();
-
-    a.remove();
-
-
-    setTimeout(
-        () => {
-
-            URL.revokeObjectURL(
-                url
-            );
-
-        },
-        100
-    );
-
-}
-
-
-/* =====================================================
-   復元
-===================================================== */
-
-function importData(event) {
-
-    const file =
-        event.target.files[0];
-
-
-    if (!file) return;
-
-
-    const reader =
-        new FileReader();
-
-
-    reader.onload =
-        async e => {
-
-            try {
-
-                const imported =
-                    JSON.parse(
-                        e.target.result
-                    );
-
-
-                if (
-                    !imported.events ||
-                    !imported.members
-                ) {
-
-                    throw new Error(
-                        "Invalid backup"
-                    );
-
-                }
-
-
-                if (
-                    !confirm(
-                        "現在のデータをバックアップデータに置き換えますか？"
-                    )
-                ) {
-
-                    return;
-
-                }
-
-
-                data =
-                    imported;
-
-
-                normalizeData(
-                    data
-                );
-
-
-                saveLocalOnly();
-
-
-                await saveToCloud();
-
-
-                alert(
-                    "データを復元しました！"
-                );
-
-
-                renderAll();
-
-            }
-            catch (error) {
-
-                console.error(
-                    error
-                );
-
-
-                alert(
-                    "バックアップファイルを読み込めませんでした。"
-                );
-
-            }
-
-        };
-
-
-    reader.readAsText(file);
-
-}
-
-
-/* =====================================================
-   参加費変更
+   Change Fee
 ===================================================== */
 
 function changeFee() {
@@ -4315,7 +4022,11 @@ function changeFee() {
 
     if (
         input === null
-    ) return;
+    ) {
+
+        return;
+
+    }
 
 
     const newFee =
@@ -4328,7 +4039,7 @@ function changeFee() {
     ) {
 
         alert(
-            "正しい金額を入力してください"
+            "正しい金額を入力してください。"
         );
 
         return;
@@ -4359,22 +4070,390 @@ function changeFee() {
 
 
 /* =====================================================
-   サークル全体の会計
+   Calculator
+===================================================== */
+
+function calculateCustom() {
+
+    const peopleElement =
+        $("calcPeople");
+
+    const totalElement =
+        $("calcTotal");
+
+    const resultElement =
+        $("calcPerPerson");
+
+
+    if (
+        !peopleElement ||
+        !totalElement ||
+        !resultElement
+    ) {
+
+        return;
+
+    }
+
+
+    const people =
+        Number(
+            peopleElement.value
+        );
+
+
+    const total =
+        Number(
+            totalElement.value
+        );
+
+
+    let result = 0;
+
+
+    if (
+        people > 0
+    ) {
+
+        result =
+            Math.ceil(
+                total / people
+            );
+
+    }
+
+
+    resultElement.textContent =
+        "¥" +
+        result.toLocaleString();
+
+}
+
+
+/* =====================================================
+   Reset Current Event
+===================================================== */
+
+function resetCurrentEvent() {
+
+    const event =
+        getCurrentEvent();
+
+
+    if (!event) return;
+
+
+    if (
+        !confirm(
+            `「${event.name}」の支払い状況を全て未払いに戻しますか？`
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    event.members = {};
+
+
+    saveData();
+
+    renderAll();
+
+}
+
+
+/* =====================================================
+   Reset All Data
+===================================================== */
+
+async function resetAllData() {
+
+    if (
+        !confirm(
+            "全てのデータを削除します。\n本当に削除しますか？"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        !confirm(
+            "この操作は元に戻せません。本当に全データを削除しますか？"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    data =
+        structuredClone(
+            DEFAULT_DATA
+        );
+
+
+    saveLocalOnly();
+
+
+    const ref =
+        getCloudDataRef();
+
+
+    if (ref) {
+
+        try {
+
+            await setDoc(
+
+                ref,
+
+                {
+
+                    data:
+                        structuredClone(
+                            DEFAULT_DATA
+                        ),
+
+                    updatedAt:
+                        new Date()
+                            .toISOString()
+
+                }
+
+            );
+
+        }
+        catch (error) {
+
+            console.error(
+                "Cloud reset error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    renderAll();
+
+    showCloudStatus(
+        "🗑️ 全データを削除しました"
+    );
+
+}
+
+
+/* =====================================================
+   Export
+===================================================== */
+
+function exportData() {
+
+    const json =
+        JSON.stringify(
+            data,
+            null,
+            2
+        );
+
+
+    const blob =
+        new Blob(
+            [json],
+            {
+                type:
+                    "application/json"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+
+    link.href =
+        url;
+
+    link.download =
+        "CircleAccounting_backup.json";
+
+
+    document.body.appendChild(
+        link
+    );
+
+
+    link.click();
+
+
+    link.remove();
+
+
+    setTimeout(
+        () => {
+
+            URL.revokeObjectURL(
+                url
+            );
+
+        },
+        100
+    );
+
+}
+
+
+/* =====================================================
+   Import
+===================================================== */
+
+function importData(
+    event
+) {
+
+    const file =
+        event.target.files?.[0];
+
+
+    if (!file) {
+
+        return;
+
+    }
+
+
+    const reader =
+        new FileReader();
+
+
+    reader.onload =
+        async eventObject => {
+
+            try {
+
+                const imported =
+                    JSON.parse(
+                        eventObject.target.result
+                    );
+
+
+                if (
+                    !imported ||
+                    !Array.isArray(
+                        imported.events
+                    ) ||
+                    !Array.isArray(
+                        imported.members
+                    )
+                ) {
+
+                    throw new Error(
+                        "Invalid backup file"
+                    );
+
+                }
+
+
+                normalizeData(
+                    imported
+                );
+
+
+                if (
+                    !confirm(
+                        "現在のデータをバックアップデータに置き換えますか？"
+                    )
+                ) {
+
+                    return;
+
+                }
+
+
+                data =
+                    imported;
+
+
+                saveLocalOnly();
+
+
+                await saveToCloud();
+
+
+                renderAll();
+
+
+                alert(
+                    "データを復元しました！"
+                );
+
+            }
+            catch (error) {
+
+                console.error(
+                    "Import error:",
+                    error
+                );
+
+
+                alert(
+                    "バックアップファイルを読み込めませんでした。"
+                );
+
+            }
+            finally {
+
+                event.target.value =
+                    "";
+
+            }
+
+        };
+
+
+    reader.readAsText(
+        file
+    );
+
+}
+
+
+/* =====================================================
+   Overall Finance
 ===================================================== */
 
 function updateOverallFinance() {
 
-    let totalParticipationIncome = 0;
+    let totalParticipationIncome =
+        0;
 
-    let totalOtherIncome = 0;
+    let totalOtherIncome =
+        0;
 
-    let totalExpense = 0;
+    let totalExpense =
+        0;
 
 
     data.events.forEach(
         event => {
 
-            let paidCount = 0;
+            let paidCount =
+                0;
 
 
             Object.values(
@@ -4398,7 +4477,9 @@ function updateOverallFinance() {
 
                 paidCount *
                 (
-                    Number(event.fee) || 0
+                    Number(
+                        event.fee
+                    ) || 0
                 );
 
 
@@ -4443,66 +4524,71 @@ function updateOverallFinance() {
         totalExpense;
 
 
-    const incomeElement =
-        document.getElementById(
-            "overallIncome"
-        );
+    setText(
+
+        "overallIncome",
+
+        "¥" +
+        totalIncome.toLocaleString()
+
+    );
 
 
-    const expenseElement =
-        document.getElementById(
-            "overallExpense"
-        );
+    setText(
+
+        "overallExpense",
+
+        "¥" +
+        totalExpense.toLocaleString()
+
+    );
 
 
-    const balanceElement =
-        document.getElementById(
-            "overallBalance"
-        );
+    setText(
 
+        "overallBalance",
 
-    if (incomeElement) {
+        "¥" +
+        balance.toLocaleString()
 
-        incomeElement.textContent =
-            "¥" +
-            totalIncome.toLocaleString();
-
-    }
-
-
-    if (expenseElement) {
-
-        expenseElement.textContent =
-            "¥" +
-            totalExpense.toLocaleString();
-
-    }
-
-
-    if (balanceElement) {
-
-        balanceElement.textContent =
-            "¥" +
-            balance.toLocaleString();
-
-    }
+    );
 
 }
 
 
 /* =====================================================
-   Authentication状態監視
+   Update User Display
 ===================================================== */
 
-let firstAuthCheck = true;
+function updateUserDisplay() {
 
+    const element =
+        $("userEmail");
+
+
+    if (!element) return;
+
+
+    element.textContent =
+        currentUser?.email || "";
+
+}
+
+
+/* =====================================================
+   Authentication State
+===================================================== */
 
 function setupAuthentication() {
 
     if (!auth) {
 
         console.error(
-            "Firebase Authenticationを初期化できませんでした"
+            "Firebase Authentication is unavailable."
+        );
+
+        showAuthMessage(
+            "Firebase Authenticationに接続できません。"
         );
 
         return;
@@ -4510,119 +4596,82 @@ function setupAuthentication() {
     }
 
 
-    createLoginScreen();
-
-
     onAuthStateChanged(
+
         auth,
+
         async user => {
 
             console.log(
-                "🔐 Authentication状態:",
+                "🔐 Auth state:",
                 user
                     ? user.email
-                    : "ログアウト"
+                    : "logged out"
             );
 
 
+            /*
+                LOGGED OUT
+            */
+
             if (!user) {
 
-                currentUser = null;
+                currentUser =
+                    null;
 
-                showLoginScreen();
+                showLogin();
+
+                authInitialized =
+                    true;
 
                 return;
 
             }
 
 
+            /*
+                LOGGED IN
+            */
+
             currentUser =
                 user;
 
 
-            console.log(
-                "👤 ログインユーザー:",
-                user.uid
-            );
-
-
-            hideLoginScreen();
-
-            createLogoutButton();
+            updateUserDisplay();
 
 
             /*
-                ユーザー専用LocalStorageを読み込む
+                ユーザー専用LocalStorage
             */
 
-            const localKey =
-                getLocalStorageKey();
-
-
-            const localSaved =
-                localStorage.getItem(
-                    localKey
-                );
-
-
-            if (localSaved) {
-
-                try {
-
-                    data =
-                        JSON.parse(
-                            localSaved
-                        );
-
-                    normalizeData(
-                        data
-                    );
-
-                }
-                catch (error) {
-
-                    console.error(
-                        "ユーザーローカルデータ読み込みエラー:",
-                        error
-                    );
-
-                    data =
-                        structuredClone(
-                            DEFAULT_DATA
-                        );
-
-                }
-
-            }
-            else {
-
-                data =
-                    structuredClone(
-                        DEFAULT_DATA
-                    );
-
-            }
+            data =
+                loadLocalData();
 
 
             /*
-                まずローカルデータを表示
+                まず画面表示
             */
+
+            showApp();
 
             renderAll();
 
 
             /*
-                Firestoreから最新データを取得
+                Firestoreから取得
             */
 
             await loadFromCloud();
 
 
             /*
-                クラウド取得後に再描画
+                クラウド取得後再描画
             */
 
             renderAll();
+
+
+            updateUserDisplay();
 
 
             showCloudStatus(
@@ -4630,93 +4679,237 @@ function setupAuthentication() {
             );
 
 
-            firstAuthCheck = false;
+            authInitialized =
+                true;
 
         }
+
     );
 
 }
 
 
 /* =====================================================
-   HTML onclick対応
+   Event Listeners
 ===================================================== */
 
-window.addEvent =
-    addEvent;
+function setupEventListeners() {
 
-window.deleteEvent =
-    deleteEvent;
+    /*
+        Authentication
+    */
 
-window.addGroup =
-    addGroup;
+    $("authMainButton")
+        ?.addEventListener(
+            "click",
+            handleAuth
+        );
 
-window.deleteGroup =
-    deleteGroup;
 
-window.addMember =
-    addMember;
+    $("authModeButton")
+        ?.addEventListener(
+            "click",
+            () => {
 
-window.deleteMember =
-    deleteMember;
+                authMode =
+                    authMode === "login"
+                        ? "register"
+                        : "login";
 
-window.renameMember =
-    renameMember;
+                updateAuthMode();
 
-window.moveMember =
-    moveMember;
+            }
+        );
 
-window.sortMembersByName =
-    sortMembersByName;
 
-window.bulkAbsent =
-    bulkAbsent;
+    $("resetPasswordButton")
+        ?.addEventListener(
+            "click",
+            resetPassword
+        );
 
-window.bulkPresent =
-    bulkPresent;
 
-window.changeMemberGroup =
-    changeMemberGroup;
+    $("authPassword")
+        ?.addEventListener(
+            "keydown",
+            event => {
 
-window.togglePayment =
-    togglePayment;
+                if (
+                    event.key ===
+                    "Enter"
+                ) {
 
-window.toggleAttendance =
-    toggleAttendance;
+                    handleAuth();
 
-window.addIncome =
-    addIncome;
+                }
 
-window.addExpense =
-    addExpense;
+            }
+        );
 
-window.deleteFinanceItem =
-    deleteFinanceItem;
 
-window.calculateCustom =
-    calculateCustom;
+    $("authEmail")
+        ?.addEventListener(
+            "keydown",
+            event => {
 
-window.resetCurrentEvent =
-    resetCurrentEvent;
+                if (
+                    event.key ===
+                    "Enter"
+                ) {
 
-window.resetAllData =
-    resetAllData;
+                    $("authPassword")
+                        ?.focus();
 
-window.exportData =
-    exportData;
+                }
 
-window.importData =
-    importData;
+            }
+        );
 
-window.changeFee =
-    changeFee;
 
-window.logoutUser =
-    logoutUser;
+    /*
+        Header
+    */
+
+    $("logoutButton")
+        ?.addEventListener(
+            "click",
+            logout
+        );
+
+
+    $("exportButton")
+        ?.addEventListener(
+            "click",
+            exportData
+        );
+
+
+    $("importFile")
+        ?.addEventListener(
+            "change",
+            importData
+        );
+
+
+    /*
+        Events
+    */
+
+    $("addEventButton")
+        ?.addEventListener(
+            "click",
+            addEvent
+        );
+
+
+    $("changeFeeButton")
+        ?.addEventListener(
+            "click",
+            changeFee
+        );
+
+
+    /*
+        Finance
+    */
+
+    $("addIncomeButton")
+        ?.addEventListener(
+            "click",
+            addIncome
+        );
+
+
+    $("addExpenseButton")
+        ?.addEventListener(
+            "click",
+            addExpense
+        );
+
+
+    /*
+        Groups
+    */
+
+    $("addGroupButton")
+        ?.addEventListener(
+            "click",
+            addGroup
+        );
+
+
+    /*
+        Members
+    */
+
+    $("addMemberButton")
+        ?.addEventListener(
+            "click",
+            addMember
+        );
+
+
+    $("bulkAbsentButton")
+        ?.addEventListener(
+            "click",
+            bulkAbsent
+        );
+
+
+    $("bulkPresentButton")
+        ?.addEventListener(
+            "click",
+            bulkPresent
+        );
+
+
+    $("sortMembersButton")
+        ?.addEventListener(
+            "click",
+            sortMembersByName
+        );
+
+
+    /*
+        Calculator
+    */
+
+    $("calcPeople")
+        ?.addEventListener(
+            "input",
+            calculateCustom
+        );
+
+
+    $("calcTotal")
+        ?.addEventListener(
+            "input",
+            calculateCustom
+        );
+
+
+    /*
+        Settings
+    */
+
+    $("resetCurrentEventButton")
+        ?.addEventListener(
+            "click",
+            resetCurrentEvent
+        );
+
+
+    $("resetAllDataButton")
+        ?.addEventListener(
+            "click",
+            resetAllData
+        );
+
+}
 
 
 /* =====================================================
-   起動
+   Startup
 ===================================================== */
 
 document.addEventListener(
@@ -4724,24 +4917,56 @@ document.addEventListener(
     () => {
 
         console.log(
-            "🚀 Circle Accounting 起動"
+            "🚀 Circle Accounting started"
         );
 
 
-        if (!firebaseReady) {
+        /*
+            最初はログイン画面を表示
+        */
 
-            console.error(
-                "Firebaseが利用できません"
+        showLogin();
+
+
+        /*
+            初期モード
+        */
+
+        updateAuthMode();
+
+
+        /*
+            ボタンイベント
+        */
+
+        setupEventListeners();
+
+
+        /*
+            Firebase認証開始
+        */
+
+        if (
+            firebaseReady
+        ) {
+
+            setupAuthentication();
+
+        }
+        else {
+
+            showAuthMessage(
+                "Firebaseを初期化できませんでした。"
             );
-
-            renderAll();
-
-            return;
 
         }
 
 
-        setupAuthentication();
+        /*
+            初期計算機
+        */
+
+        calculateCustom();
 
     }
 );
